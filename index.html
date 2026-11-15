@@ -152,6 +152,7 @@
       }
       .profileMenu button {
         width: 100%;
+        margin-bottom: 8px;
       }
 
       /* ----- Name row and My characters list ----- */
@@ -299,6 +300,110 @@
       }
       .lbNext {
         right: 12px;
+      }
+
+      /* ----- Profile page, checkbox, tags ----- */
+      .panel .checkRow {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+        cursor: pointer;
+      }
+      .panel .checkRow input {
+        display: inline-block;
+        width: 22px;
+        height: 22px;
+        margin: 0;
+        padding: 0;
+        flex-shrink: 0;
+      }
+      .tag {
+        display: inline-block;
+        margin-left: 8px;
+        padding: 2px 8px;
+        font-size: 12px;
+        color: #cfcaff;
+        background-color: #3a3a66;
+        border-radius: 999px;
+        vertical-align: middle;
+      }
+      #profilePage.active {
+        display: block;
+        padding: 24px 16px;
+      }
+      .profileWrap {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+      .profileHeader {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .bigAvatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 72px;
+        height: 72px;
+        flex-shrink: 0;
+        overflow: hidden;
+        border-radius: 50%;
+        border: 3px solid #6c63ff;
+        background-color: #3a3a52;
+        font-size: 30px;
+        font-weight: bold;
+      }
+      .bigAvatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .profileHeader h1 {
+        margin: 0 0 4px 0;
+        font-size: 26px;
+        overflow-wrap: anywhere;
+      }
+      .profileHeader p {
+        margin: 0;
+        opacity: 0.7;
+      }
+      .tileGrid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .tile {
+        display: block;
+        overflow: hidden;
+        color: inherit;
+        text-decoration: none;
+        background-color: #1e1e2e;
+        border: 1px solid #32324a;
+        border-top: 5px solid #4c6ef5;
+        border-radius: 12px;
+      }
+      .tile img {
+        display: block;
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        object-fit: cover;
+        background-color: #3a3a52;
+      }
+      .tile .tileText {
+        padding: 10px 12px 12px 12px;
+      }
+      .tile .tileName {
+        font-weight: bold;
+        overflow-wrap: anywhere;
+      }
+      .tile .tileSub {
+        margin-top: 2px;
+        font-size: 14px;
+        opacity: 0.7;
       }
 
       /* ----- Layout ----- */
@@ -751,6 +856,20 @@
       </div>
     </div>
 
+    <div id="profilePage" class="screen">
+      <div class="profileWrap">
+        <div class="profileHeader">
+          <div class="bigAvatar" id="profileAvatar"><span id="profileLetter">?</span></div>
+          <div>
+            <h1 id="profileName">Loading...</h1>
+            <p id="profileCount"></p>
+          </div>
+        </div>
+        <div class="tileGrid" id="profileGrid"></div>
+        <p><a href="./" style="color: #9d97ff;">Make your own cards</a></p>
+      </div>
+    </div>
+
     <div class="page screen" id="app">
       <div class="topbar" id="authBox">
         <h2 class="siteTitle">Character Cards</h2>
@@ -763,6 +882,8 @@
           </button>
           <div class="profileMenu" id="profileMenu">
             <p id="userInfo">Not logged in</p>
+            <button class="secondary" onclick="viewMyProfile()">My profile page</button>
+            <button class="secondary" id="copyProfileBtn" onclick="copyProfileLink()">Copy profile link</button>
             <button class="secondary" onclick="logout()">Log out</button>
           </div>
         </div>
@@ -801,6 +922,7 @@
               <button onclick="downloadCard()">Download card as image</button>
             </div>
             <p><a href="./" style="color: #9d97ff;">Make your own card</a></p>
+            <p id="moreLink" style="display: none;"><a href="./" style="color: #9d97ff;">More characters by this creator</a></p>
           </div>
         </div>
 
@@ -854,6 +976,20 @@
             <input id="galleryInput" type="file" accept="image/*" multiple onchange="addGalleryImages()">
             <div class="galleryEditor" id="galleryEditor"></div>
 
+            <h4>Sharing</h4>
+            <label class="checkRow">
+              <input type="checkbox" id="showOnProfileInput">
+              <span>Show this character on my public profile page</span>
+            </label>
+
+            <h4>Backup file</h4>
+            <p class="hint">Save this character to a file on your device, or load one back in. Pictures are included. Loading a file makes a new character.</p>
+            <div class="actions">
+              <button class="secondary" onclick="exportCharacter()">Save to file</button>
+              <button class="secondary" onclick="document.getElementById('fileInput').click()">Load from file</button>
+            </div>
+            <input id="fileInput" type="file" accept=".json,application/json" style="display: none;" onchange="importCharacterFile()">
+
             <div class="actions">
               <button onclick="saveCharacter()">Save character</button>
               <button class="secondary" onclick="downloadCard()">Download card as image</button>
@@ -892,7 +1028,19 @@
       const MAX_LABEL = 40;
       const MAX_VALUE = 2000;
 
-      const isViewer = new URLSearchParams(window.location.search).has("id");
+      const FILE_FORMAT = "oc-character-card";
+      const TEMPLATE_COLORS = {
+        modern: "#4c6ef5",
+        fantasy: "#b58a45",
+        dark: "#8b1a2e",
+        scifi: "#20e3ff",
+        cute: "#f06bb0",
+        noir: "#111111"
+      };
+
+      const pageParams = new URLSearchParams(window.location.search);
+      const isViewer = pageParams.has("id");
+      const isProfile = pageParams.has("user") && !isViewer;
       let currentUser = null;
       let editingId = null;
       let pendingImageBlob = null;
@@ -912,7 +1060,7 @@
       // ---------- Screens ----------
 
       function showScreen(name) {
-        ["loadingScreen", "loginPage", "app"].forEach(function (id) {
+        ["loadingScreen", "loginPage", "profilePage", "app"].forEach(function (id) {
           document.getElementById(id).classList.toggle("active", id === name);
         });
       }
@@ -920,6 +1068,8 @@
       // Shared links go straight to the card; everyone else sees login first.
       if (isViewer) {
         showScreen("app");
+      } else if (isProfile) {
+        showScreen("profilePage");
       } else {
         // If login never answers, show the login page anyway.
         setTimeout(function () {
@@ -952,7 +1102,7 @@
 
       function showUser(user) {
         currentUser = user;
-        if (isViewer) {
+        if (isViewer || isProfile) {
           return;
         }
 
@@ -966,6 +1116,7 @@
           const name = meta.full_name || meta.name || "Discord user";
           info.textContent = name;
           showAvatar(meta.avatar_url || meta.picture, name);
+          saveProfileRow(user.id, name, meta.avatar_url || meta.picture);
           myBox.style.display = "block";
           loadMyCharacters();
         } else {
@@ -995,6 +1146,39 @@
           };
           img.src = url;
         }
+      }
+
+      // Keeps the public name and picture used on the profile page up to date.
+      function saveProfileRow(id, name, avatarUrl) {
+        db.from("profiles")
+          .upsert({ id: id, display_name: name, avatar_url: avatarUrl || null })
+          .then(function (result) {
+            if (result && result.error) {
+              console.warn("Could not save profile: " + result.error.message);
+            }
+          });
+      }
+
+      function profileLink(id) {
+        return window.location.origin + window.location.pathname + "?user=" + id;
+      }
+
+      function viewMyProfile() {
+        if (currentUser && confirmDiscard()) {
+          window.location.href = profileLink(currentUser.id);
+        }
+      }
+
+      function copyProfileLink() {
+        if (!currentUser) {
+          return;
+        }
+        const btn = document.getElementById("copyProfileBtn");
+        navigator.clipboard.writeText(profileLink(currentUser.id));
+        btn.textContent = "Copied!";
+        setTimeout(function () {
+          btn.textContent = "Copy profile link";
+        }, 1500);
       }
 
       function toggleProfileMenu(event) {
@@ -1119,6 +1303,7 @@
           template: getTemplate(),
           extra: getExtraFields(),
           newPicture: pendingImageBlob ? true : false,
+          onProfile: document.getElementById("showOnProfileInput").checked,
           gallery: gallery.map(function (item) {
             return item.url || item.key;
           })
@@ -1133,7 +1318,7 @@
       }
 
       window.addEventListener("beforeunload", function (event) {
-        if (!isViewer && currentUser && getSnapshot() !== savedSnapshot) {
+        if (!isViewer && !isProfile && currentUser && getSnapshot() !== savedSnapshot) {
           event.preventDefault();
           event.returnValue = "";
         }
@@ -1353,6 +1538,7 @@
         document.getElementById("storyInput").value = data.backstory || "";
         document.getElementById("templateInput").value =
           TEMPLATES.includes(data.template) ? data.template : "modern";
+        document.getElementById("showOnProfileInput").checked = data.show_on_profile === true;
         setExtraFields(data.extra);
         setGallery(data.gallery);
         renderCard();
@@ -1541,6 +1727,196 @@
         }
       }
 
+      // ---------- Backup file ----------
+
+      function blobToDataUrl(blob) {
+        return new Promise(function (resolve, reject) {
+          const reader = new FileReader();
+          reader.onload = function () {
+            resolve(reader.result);
+          };
+          reader.onerror = function () {
+            reject(new Error("Could not read the picture"));
+          };
+          reader.readAsDataURL(blob);
+        });
+      }
+
+      async function exportCharacter() {
+        const status = document.getElementById("status");
+        status.textContent = "Preparing your file...";
+        let skipped = 0;
+
+        async function pictureToDataUrl(blob, url) {
+          try {
+            if (blob) {
+              return await blobToDataUrl(blob);
+            }
+            return await imageToDataUrl(url, false);
+          } catch (err) {
+            skipped += 1;
+            return null;
+          }
+        }
+
+        let main = null;
+        if (pendingImageBlob || mainImageUrl) {
+          main = await pictureToDataUrl(pendingImageBlob, mainImageUrl);
+        }
+
+        const pictures = [];
+        for (const item of gallery) {
+          const data = await pictureToDataUrl(item.blob, item.url);
+          if (data) {
+            pictures.push(data);
+          }
+        }
+
+        const file = {
+          format: FILE_FORMAT,
+          version: 1,
+          character: {
+            first_name: document.getElementById("firstNameInput").value.trim(),
+            second_name: document.getElementById("secondNameInput").value.trim(),
+            last_name: document.getElementById("lastNameInput").value.trim(),
+            pronouns: document.getElementById("pronounsInput").value.trim(),
+            age: document.getElementById("ageInput").value.trim(),
+            gender: document.getElementById("genderInput").value.trim(),
+            backstory: document.getElementById("storyInput").value.trim(),
+            template: getTemplate(),
+            extra: getExtraFields()
+          },
+          images: { main: main, gallery: pictures }
+        };
+
+        const blob = new Blob([JSON.stringify(file)], { type: "application/json" });
+        const link = document.createElement("a");
+        link.download = fileNameFor(getFullName()).replace(/\.png$/, ".json");
+        link.href = URL.createObjectURL(blob);
+        link.click();
+        setTimeout(function () {
+          URL.revokeObjectURL(link.href);
+        }, 1000);
+
+        status.textContent = skipped > 0
+          ? "Saved to a file, but " + skipped + " picture(s) could not be included."
+          : "Saved to a file.";
+      }
+
+      async function importCharacterFile() {
+        const input = document.getElementById("fileInput");
+        const status = document.getElementById("status");
+        const file = input.files[0];
+        input.value = "";
+        if (!file) {
+          return;
+        }
+
+        const badFile = "That does not look like a character file saved from this site.";
+
+        if (file.size > 15 * 1024 * 1024) {
+          status.textContent = "That file is too big to be a character file.";
+          return;
+        }
+
+        let data;
+        try {
+          data = JSON.parse(await file.text());
+        } catch (err) {
+          status.textContent = badFile;
+          return;
+        }
+        if (!data || data.format !== FILE_FORMAT || !data.character || typeof data.character !== "object") {
+          status.textContent = badFile;
+          return;
+        }
+
+        status.textContent = "Loading the file...";
+
+        function text(value, max) {
+          return typeof value === "string" ? value.slice(0, max) : "";
+        }
+
+        const c = data.character;
+        const clean = {
+          first_name: text(c.first_name, 50),
+          second_name: text(c.second_name, 50),
+          last_name: text(c.last_name, 50),
+          pronouns: text(c.pronouns, 50),
+          age: text(c.age, 50),
+          gender: text(c.gender, 50),
+          backstory: text(c.backstory, 5000),
+          template: TEMPLATES.includes(c.template) ? c.template : "modern",
+          extra: [],
+          gallery: []
+        };
+        if (Array.isArray(c.extra)) {
+          c.extra.slice(0, MAX_FIELDS).forEach(function (field) {
+            if (field && typeof field.label === "string" && typeof field.value === "string") {
+              clean.extra.push({ label: field.label.slice(0, MAX_LABEL), value: field.value.slice(0, MAX_VALUE) });
+            }
+          });
+        }
+
+        // Pictures are re-processed like any picture you pick, so only real images get through.
+        const images = data.images || {};
+        const looksLikeImage = function (value) {
+          return typeof value === "string" && /^data:image\/(jpeg|png|webp|gif);base64,/i.test(value);
+        };
+        async function toPicture(dataUrl) {
+          const response = await fetch(dataUrl);
+          return await resizeImage(await response.blob(), 800);
+        }
+
+        let skipped = 0;
+        let mainBlob = null;
+        if (images.main) {
+          try {
+            if (!looksLikeImage(images.main)) {
+              throw new Error("not an image");
+            }
+            mainBlob = await toPicture(images.main);
+          } catch (err) {
+            skipped += 1;
+          }
+        }
+        const galleryBlobs = [];
+        if (Array.isArray(images.gallery)) {
+          for (const item of images.gallery.slice(0, MAX_GALLERY)) {
+            try {
+              if (!looksLikeImage(item)) {
+                throw new Error("not an image");
+              }
+              galleryBlobs.push(await toPicture(item));
+            } catch (err) {
+              skipped += 1;
+            }
+          }
+        }
+
+        if (!confirmDiscard()) {
+          status.textContent = "";
+          return;
+        }
+
+        newCharacter();
+        fillForm(clean);
+        if (mainBlob) {
+          pendingImageBlob = mainBlob;
+          showImage(URL.createObjectURL(mainBlob));
+        }
+        galleryBlobs.forEach(function (blob) {
+          galleryCounter += 1;
+          gallery.push({ key: "new" + galleryCounter, url: null, blob: blob, preview: URL.createObjectURL(blob) });
+        });
+        renderGalleryEditor();
+        renderCard();
+
+        status.textContent =
+          "Loaded " + (getFullName() || "your character") + " from the file. Press Save character to keep it." +
+          (skipped > 0 ? " Some pictures could not be loaded." : "");
+      }
+
       function newCharacterButton() {
         if (confirmDiscard()) {
           newCharacter();
@@ -1562,6 +1938,7 @@
         document.getElementById("storyInput").value = "";
         document.getElementById("templateInput").value = "modern";
         document.getElementById("extraFields").textContent = "";
+        document.getElementById("showOnProfileInput").checked = false;
         clearGalleryPreviews();
         gallery = [];
         savedGalleryUrls = [];
@@ -1612,7 +1989,8 @@
           gender: document.getElementById("genderInput").value.trim(),
           backstory: document.getElementById("storyInput").value.trim(),
           template: getTemplate(),
-          extra: getExtraFields()
+          extra: getExtraFields(),
+          show_on_profile: document.getElementById("showOnProfileInput").checked
         };
 
         let newImagePath = null;
@@ -1727,7 +2105,7 @@
         const list = document.getElementById("myList");
         const { data, error } = await db
           .from("characters")
-          .select("id, name, image_url")
+          .select("id, name, image_url, show_on_profile")
           .eq("owner_id", currentUser.id)
           .order("created_at", { ascending: false });
 
@@ -1759,6 +2137,12 @@
           const nameSpan = document.createElement("span");
           nameSpan.className = "charName";
           nameSpan.textContent = character.name;
+          if (character.show_on_profile) {
+            const tag = document.createElement("span");
+            tag.className = "tag";
+            tag.textContent = "On profile";
+            nameSpan.appendChild(tag);
+          }
 
           const buttons = document.createElement("div");
           buttons.className = "charButtons";
@@ -1895,12 +2279,111 @@
 
         showImage(data.image_url);
         fillForm(data);
+
+        if (data.show_on_profile === true && data.owner_id) {
+          const more = document.getElementById("moreLink");
+          more.querySelector("a").href = "?user=" + encodeURIComponent(data.owner_id);
+          more.style.display = "";
+        }
+      }
+
+      // ---------- Profile page ----------
+
+      async function loadProfile() {
+        if (!isProfile) {
+          return;
+        }
+        const userId = pageParams.get("user");
+        const nameEl = document.getElementById("profileName");
+        const countEl = document.getElementById("profileCount");
+        const grid = document.getElementById("profileGrid");
+
+        const [profileResult, charactersResult] = await Promise.all([
+          db.from("profiles").select("*").eq("id", userId).single(),
+          db
+            .from("characters")
+            .select("id, name, pronouns, image_url, template")
+            .eq("owner_id", userId)
+            .eq("show_on_profile", true)
+            .order("created_at", { ascending: false })
+        ]);
+
+        if (charactersResult.error) {
+          nameEl.textContent = "Profile not found";
+          countEl.textContent = "This link may be wrong, or the profile is not available.";
+          return;
+        }
+
+        const characters = charactersResult.data || [];
+        const profile = profileResult && !profileResult.error ? profileResult.data : null;
+
+        if (!profile && characters.length === 0) {
+          nameEl.textContent = "Profile not found";
+          countEl.textContent = "This link may be wrong, or the profile is not available.";
+          return;
+        }
+
+        const displayName = (profile && profile.display_name) || "Character creator";
+        nameEl.textContent = displayName;
+        document.title = displayName + " - Character Cards";
+        countEl.textContent = characters.length === 1 ? "1 character" : characters.length + " characters";
+
+        const avatarBox = document.getElementById("profileAvatar");
+        document.getElementById("profileLetter").textContent = displayName.trim().charAt(0).toUpperCase() || "?";
+        if (profile && profile.avatar_url) {
+          const avatar = document.createElement("img");
+          avatar.alt = "";
+          avatar.onload = function () {
+            document.getElementById("profileLetter").style.display = "none";
+            avatarBox.appendChild(avatar);
+          };
+          avatar.src = profile.avatar_url;
+        }
+
+        grid.textContent = "";
+        if (characters.length === 0) {
+          countEl.textContent = "No public characters yet.";
+          return;
+        }
+
+        characters.forEach(function (character) {
+          const tile = document.createElement("a");
+          tile.className = "tile";
+          tile.href = "?id=" + encodeURIComponent(character.id);
+          tile.style.borderTopColor = TEMPLATE_COLORS[character.template] || TEMPLATE_COLORS.modern;
+
+          const img = document.createElement("img");
+          img.alt = "";
+          img.loading = "lazy";
+          img.src = character.image_url || PLACEHOLDER_IMAGE;
+          img.onerror = function () {
+            img.src = PLACEHOLDER_IMAGE;
+          };
+
+          const text = document.createElement("div");
+          text.className = "tileText";
+          const name = document.createElement("div");
+          name.className = "tileName";
+          name.textContent = character.name;
+          text.appendChild(name);
+          if (character.pronouns) {
+            const sub = document.createElement("div");
+            sub.className = "tileSub";
+            sub.textContent = character.pronouns;
+            text.appendChild(sub);
+          }
+
+          tile.appendChild(img);
+          tile.appendChild(text);
+          grid.appendChild(tile);
+        });
       }
 
       showImage(null);
       renderCard();
       savedSnapshot = getSnapshot();
       loadCharacter();
+      loadProfile();
     </script>
   </body>
 </html>
