@@ -80,6 +80,58 @@
         opacity: 0.7;
       }
 
+      /* ----- Profile icon (top right) ----- */
+      .siteTitle {
+        margin: 0;
+        font-size: 20px;
+      }
+      .profile {
+        position: relative;
+      }
+      .avatarBtn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        overflow: hidden;
+        border-radius: 50%;
+        border: 2px solid #6c63ff;
+        background-color: #3a3a52;
+        color: white;
+        font-size: 18px;
+        font-weight: bold;
+      }
+      .avatarBtn img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .profileMenu {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: 54px;
+        z-index: 10;
+        min-width: 180px;
+        padding: 12px;
+        background-color: #1e1e2e;
+        border: 1px solid #32324a;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      }
+      .profileMenu.open {
+        display: block;
+      }
+      .profileMenu p {
+        margin: 0 0 10px 0;
+        overflow-wrap: anywhere;
+      }
+      .profileMenu button {
+        width: 100%;
+      }
+
       /* ----- Layout ----- */
       .layout {
         display: grid;
@@ -294,10 +346,16 @@
 
     <div class="page screen" id="app">
       <div class="topbar" id="authBox">
-        <p id="userInfo">Not logged in</p>
-        <div>
-          <button id="loginBtn" onclick="loginWithDiscord()">Log in with Discord</button>
-          <button id="logoutBtn" class="secondary" onclick="logout()" style="display: none;">Log out</button>
+        <h2 class="siteTitle">Character Cards</h2>
+        <div class="profile">
+          <button class="avatarBtn" id="avatarBtn" onclick="toggleProfileMenu(event)" aria-label="Your profile">
+            <img id="avatarImg" alt="" style="display: none;">
+            <span id="avatarLetter">?</span>
+          </button>
+          <div class="profileMenu" id="profileMenu">
+            <p id="userInfo">Not logged in</p>
+            <button class="secondary" onclick="logout()">Log out</button>
+          </div>
         </div>
       </div>
 
@@ -449,25 +507,58 @@
         showScreen(user ? "app" : "loginPage");
 
         const info = document.getElementById("userInfo");
-        const loginBtn = document.getElementById("loginBtn");
-        const logoutBtn = document.getElementById("logoutBtn");
         const myBox = document.getElementById("myBox");
 
         if (user) {
           const meta = user.user_metadata || {};
-          info.textContent = "Logged in as " + (meta.full_name || meta.name || "Discord user");
-          loginBtn.style.display = "none";
-          logoutBtn.style.display = "";
+          const name = meta.full_name || meta.name || "Discord user";
+          info.textContent = name;
+          showAvatar(meta.avatar_url || meta.picture, name);
           myBox.style.display = "block";
           loadMyCharacters();
         } else {
           info.textContent = "Not logged in";
-          loginBtn.style.display = "";
-          logoutBtn.style.display = "none";
+          closeProfileMenu();
           myBox.style.display = "none";
           editingId = null;
         }
       }
+
+      function showAvatar(url, name) {
+        const img = document.getElementById("avatarImg");
+        const letter = document.getElementById("avatarLetter");
+
+        letter.textContent = (name || "?").trim().charAt(0).toUpperCase() || "?";
+        letter.style.display = "";
+        img.style.display = "none";
+
+        if (url) {
+          img.onload = function () {
+            img.style.display = "";
+            letter.style.display = "none";
+          };
+          img.onerror = function () {
+            img.style.display = "none";
+            letter.style.display = "";
+          };
+          img.src = url;
+        }
+      }
+
+      function toggleProfileMenu(event) {
+        event.stopPropagation();
+        document.getElementById("profileMenu").classList.toggle("open");
+      }
+
+      function closeProfileMenu() {
+        document.getElementById("profileMenu").classList.remove("open");
+      }
+
+      document.addEventListener("click", function (event) {
+        if (!event.target.closest(".profile")) {
+          closeProfileMenu();
+        }
+      });
 
       db.auth.onAuthStateChange(function (event, session) {
         setTimeout(function () {
