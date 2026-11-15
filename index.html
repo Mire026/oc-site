@@ -132,6 +132,54 @@
         width: 100%;
       }
 
+      /* ----- Name row and My characters list ----- */
+      .nameRow {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0 10px;
+      }
+      @media (min-width: 520px) {
+        .nameRow {
+          grid-template-columns: 1fr 1fr 1fr;
+        }
+      }
+      .charRow {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 10px;
+        margin-bottom: 8px;
+        background-color: #2a2a3c;
+        border: 1px solid #3a3a52;
+        border-radius: 10px;
+      }
+      .charRow.editing {
+        border-color: #6c63ff;
+      }
+      .charRow img {
+        width: 48px;
+        height: 48px;
+        flex-shrink: 0;
+        object-fit: cover;
+        border-radius: 8px;
+        background-color: #3a3a52;
+      }
+      .charRow .charName {
+        flex: 1;
+        min-width: 100px;
+        overflow-wrap: anywhere;
+      }
+      .charRow .charButtons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .charRow button {
+        padding: 8px 10px;
+        font-size: 14px;
+      }
+
       /* ----- Layout ----- */
       .layout {
         display: grid;
@@ -255,7 +303,8 @@
       }
       .stats {
         display: flex;
-        gap: 24px;
+        flex-wrap: wrap;
+        gap: 8px 24px;
         margin-bottom: 4px;
       }
       .stat {
@@ -373,6 +422,10 @@
                 <span class="label">Gender</span>
                 <span class="value" id="cardGender"></span>
               </div>
+              <div class="stat">
+                <span class="label">Pronouns</span>
+                <span class="value" id="cardPronouns"></span>
+              </div>
             </div>
             <div class="section">
               <span class="label">Backstory</span>
@@ -392,7 +445,12 @@
         <div class="editorCol">
           <div class="panel" id="formBox">
             <h3>Character</h3>
-            <input id="nameInput" placeholder="Name (for example: Kai)" maxlength="100" oninput="renderCard()">
+            <div class="nameRow">
+              <input id="firstNameInput" placeholder="First name (for example: Kai)" maxlength="50" oninput="renderCard()">
+              <input id="secondNameInput" placeholder="Second name (optional)" maxlength="50" oninput="renderCard()">
+              <input id="lastNameInput" placeholder="Last name (optional)" maxlength="50" oninput="renderCard()">
+            </div>
+            <input id="pronounsInput" placeholder="Pronouns (for example: he/him)" maxlength="50" oninput="renderCard()">
             <input id="ageInput" placeholder="Age (for example: 24)" maxlength="50" oninput="renderCard()">
             <input id="genderInput" placeholder="Gender" maxlength="50" oninput="renderCard()">
             <textarea id="storyInput" placeholder="Backstory: who is your character?" rows="4" maxlength="5000" oninput="renderCard()"></textarea>
@@ -421,7 +479,7 @@
             <div class="actions">
               <button onclick="saveCharacter()">Save character</button>
               <button class="secondary" onclick="downloadCard()">Download card as image</button>
-              <button class="secondary" onclick="newCharacter()">New character</button>
+              <button class="secondary" onclick="newCharacterButton()">New character</button>
             </div>
             <p id="status"></p>
             <input id="shareLink" readonly placeholder="Your share link appears here">
@@ -455,6 +513,7 @@
       let editingId = null;
       let pendingImageBlob = null;
       let currentImageUrl = null;
+      let savedSnapshot = "";
 
       if (isViewer) {
         document.body.classList.add("viewer");
@@ -495,6 +554,9 @@
       }
 
       async function logout() {
+        if (!confirmDiscard()) {
+          return;
+        }
         await db.auth.signOut();
       }
 
@@ -644,16 +706,58 @@
         return TEMPLATES.includes(value) ? value : "modern";
       }
 
+      function getFullName() {
+        return ["firstNameInput", "secondNameInput", "lastNameInput"]
+          .map(function (id) {
+            return document.getElementById(id).value.trim();
+          })
+          .filter(function (part) {
+            return part !== "";
+          })
+          .join(" ");
+      }
+
+      function getSnapshot() {
+        return JSON.stringify({
+          first: document.getElementById("firstNameInput").value,
+          second: document.getElementById("secondNameInput").value,
+          last: document.getElementById("lastNameInput").value,
+          pronouns: document.getElementById("pronounsInput").value,
+          age: document.getElementById("ageInput").value,
+          gender: document.getElementById("genderInput").value,
+          story: document.getElementById("storyInput").value,
+          template: getTemplate(),
+          extra: getExtraFields(),
+          newPicture: pendingImageBlob ? true : false
+        });
+      }
+
+      function confirmDiscard() {
+        if (getSnapshot() === savedSnapshot) {
+          return true;
+        }
+        return confirm("You have unsaved changes. Leave without saving?");
+      }
+
+      window.addEventListener("beforeunload", function (event) {
+        if (!isViewer && currentUser && getSnapshot() !== savedSnapshot) {
+          event.preventDefault();
+          event.returnValue = "";
+        }
+      });
+
       function renderCard() {
-        const name = document.getElementById("nameInput").value.trim();
+        const name = getFullName();
         const age = document.getElementById("ageInput").value.trim();
         const gender = document.getElementById("genderInput").value.trim();
+        const pronouns = document.getElementById("pronounsInput").value.trim();
         const story = document.getElementById("storyInput").value.trim();
 
         document.getElementById("card").className = "card tpl-" + getTemplate();
         document.getElementById("cardName").textContent = name || "Character name";
         document.getElementById("cardAge").textContent = age || "?";
         document.getElementById("cardGender").textContent = gender || "?";
+        document.getElementById("cardPronouns").textContent = pronouns || "?";
         document.getElementById("cardStory").textContent = story || "No backstory yet.";
 
         const box = document.getElementById("cardExtra");
@@ -677,7 +781,12 @@
       }
 
       function fillForm(data) {
-        document.getElementById("nameInput").value = data.name || "";
+        const hasParts = data.first_name || data.second_name || data.last_name;
+        // Older characters only have one "name" - put it in the first name box.
+        document.getElementById("firstNameInput").value = hasParts ? (data.first_name || "") : (data.name || "");
+        document.getElementById("secondNameInput").value = hasParts ? (data.second_name || "") : "";
+        document.getElementById("lastNameInput").value = hasParts ? (data.last_name || "") : "";
+        document.getElementById("pronounsInput").value = data.pronouns || "";
         document.getElementById("ageInput").value = data.age || "";
         document.getElementById("genderInput").value = data.gender || "";
         document.getElementById("storyInput").value = data.backstory || "";
@@ -778,13 +887,22 @@
         });
       }
 
+      function newCharacterButton() {
+        if (confirmDiscard()) {
+          newCharacter();
+        }
+      }
+
       function newCharacter() {
         editingId = null;
         pendingImageBlob = null;
         currentImageUrl = null;
         showImage(null);
         document.getElementById("imageInput").value = "";
-        document.getElementById("nameInput").value = "";
+        document.getElementById("firstNameInput").value = "";
+        document.getElementById("secondNameInput").value = "";
+        document.getElementById("lastNameInput").value = "";
+        document.getElementById("pronounsInput").value = "";
         document.getElementById("ageInput").value = "";
         document.getElementById("genderInput").value = "";
         document.getElementById("storyInput").value = "";
@@ -793,6 +911,8 @@
         document.getElementById("shareLink").value = "";
         document.getElementById("status").textContent = "";
         renderCard();
+        markEditingRow();
+        savedSnapshot = getSnapshot();
       }
 
       // ---------- Saving ----------
@@ -805,9 +925,9 @@
           return;
         }
 
-        const name = document.getElementById("nameInput").value.trim();
-        if (name === "") {
-          status.textContent = "Please give your character a name.";
+        const name = getFullName();
+        if (document.getElementById("firstNameInput").value.trim() === "") {
+          status.textContent = "Please give your character a first name.";
           return;
         }
 
@@ -825,6 +945,10 @@
 
         const fields = {
           name: name,
+          first_name: document.getElementById("firstNameInput").value.trim(),
+          second_name: document.getElementById("secondNameInput").value.trim(),
+          last_name: document.getElementById("lastNameInput").value.trim(),
+          pronouns: document.getElementById("pronounsInput").value.trim(),
           age: document.getElementById("ageInput").value.trim(),
           gender: document.getElementById("genderInput").value.trim(),
           backstory: document.getElementById("storyInput").value.trim(),
@@ -884,6 +1008,7 @@
         const link = window.location.origin + window.location.pathname + "?id=" + result.data.id;
         document.getElementById("shareLink").value = link;
         status.textContent = "Saved!";
+        savedSnapshot = getSnapshot();
         loadMyCharacters();
       }
 
@@ -897,6 +1022,16 @@
 
       // ---------- My characters ----------
 
+      function characterLink(id) {
+        return window.location.origin + window.location.pathname + "?id=" + id;
+      }
+
+      function markEditingRow() {
+        document.querySelectorAll("#myList .charRow").forEach(function (row) {
+          row.classList.toggle("editing", row.dataset.id === editingId);
+        });
+      }
+
       async function loadMyCharacters() {
         if (!currentUser) {
           return;
@@ -905,7 +1040,7 @@
         const list = document.getElementById("myList");
         const { data, error } = await db
           .from("characters")
-          .select("id, name")
+          .select("id, name, image_url")
           .eq("owner_id", currentUser.id)
           .order("created_at", { ascending: false });
 
@@ -923,12 +1058,34 @@
 
         data.forEach(function (character) {
           const row = document.createElement("div");
-          row.className = "row";
+          row.className = "charRow";
+          row.dataset.id = character.id;
+
+          const thumb = document.createElement("img");
+          thumb.alt = "";
+          thumb.loading = "lazy";
+          thumb.src = character.image_url || PLACEHOLDER_IMAGE;
+          thumb.onerror = function () {
+            thumb.src = PLACEHOLDER_IMAGE;
+          };
 
           const nameSpan = document.createElement("span");
+          nameSpan.className = "charName";
           nameSpan.textContent = character.name;
 
           const buttons = document.createElement("div");
+          buttons.className = "charButtons";
+
+          const copyBtn = document.createElement("button");
+          copyBtn.className = "secondary";
+          copyBtn.textContent = "Copy link";
+          copyBtn.onclick = function () {
+            navigator.clipboard.writeText(characterLink(character.id));
+            copyBtn.textContent = "Copied!";
+            setTimeout(function () {
+              copyBtn.textContent = "Copy link";
+            }, 1500);
+          };
 
           const editBtn = document.createElement("button");
           editBtn.className = "secondary";
@@ -944,16 +1101,23 @@
             deleteCharacter(character.id);
           };
 
+          buttons.appendChild(copyBtn);
           buttons.appendChild(editBtn);
-          buttons.appendChild(document.createTextNode(" "));
           buttons.appendChild(deleteBtn);
+          row.appendChild(thumb);
           row.appendChild(nameSpan);
           row.appendChild(buttons);
           list.appendChild(row);
         });
+
+        markEditingRow();
       }
 
       async function editCharacter(id) {
+        if (!confirmDiscard()) {
+          return;
+        }
+
         const { data, error } = await db
           .from("characters")
           .select("*")
@@ -971,9 +1135,10 @@
         document.getElementById("imageInput").value = "";
         showImage(data.image_url);
         fillForm(data);
-        document.getElementById("shareLink").value =
-          window.location.origin + window.location.pathname + "?id=" + data.id;
+        document.getElementById("shareLink").value = characterLink(data.id);
         document.getElementById("status").textContent = "Editing " + data.name;
+        markEditingRow();
+        savedSnapshot = getSnapshot();
       }
 
       async function deleteCharacter(id) {
@@ -1021,6 +1186,7 @@
         document.getElementById("cardName").textContent = "Loading...";
         document.getElementById("cardAge").textContent = "";
         document.getElementById("cardGender").textContent = "";
+        document.getElementById("cardPronouns").textContent = "";
         document.getElementById("cardStory").textContent = "";
         document.getElementById("cardExtra").textContent = "";
 
@@ -1041,6 +1207,7 @@
 
       showImage(null);
       renderCard();
+      savedSnapshot = getSnapshot();
       loadCharacter();
     </script>
   </body>
