@@ -88,6 +88,25 @@
         margin: 0;
         font-size: 20px;
       }
+      .wideOnly {
+        display: none;
+      }
+      @media (min-width: 481px) {
+        .wideOnly {
+          display: inline;
+        }
+      }
+      .topbar {
+        flex-wrap: nowrap;
+      }
+      .siteTitle {
+        min-width: 0;
+      }
+      .topRight {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
       .profile {
         position: relative;
       }
@@ -203,10 +222,17 @@
         border: 2px solid transparent;
       }
       .styleChip .swatch {
-        width: 48px;
-        height: 48px;
+        display: block;
+        width: 52px;
+        height: 52px;
+        overflow: hidden;
         border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      .styleChip .swatch svg {
+        display: block;
+        width: 100%;
+        height: 100%;
       }
       .styleChip.active {
         border-color: #6c63ff;
@@ -377,6 +403,8 @@
 
       /* ----- The card ----- */
       .card {
+        position: relative;
+        overflow: hidden;
         width: 100%;
         max-width: 380px;
         margin: 0 auto 16px auto;
@@ -446,14 +474,20 @@
       /* ----- Template: modern ----- */
       .tpl-modern {
         background-color: #ffffff;
-        background-image: linear-gradient(90deg, #4c6ef5, #9775fa);
-        background-size: 100% 6px;
-        background-repeat: no-repeat;
         color: #1f2430;
         font-family: "Inter", "Segoe UI", -apple-system, Roboto, Arial, sans-serif;
         border-radius: 20px;
         padding-top: 28px;
         box-shadow: 0 12px 32px rgba(40, 50, 120, 0.35);
+      }
+      .tpl-modern::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+        background-image: linear-gradient(90deg, #4c6ef5, #9775fa);
       }
       .tpl-modern h1 {
         color: #1f2430;
@@ -490,7 +524,17 @@
         font-family: "EB Garamond", "Palatino Linotype", Georgia, serif;
         font-size: 17px;
         border: 6px double #7a4a18;
-        box-shadow: inset 0 0 0 3px #ecdcab, inset 0 0 0 4px #b58a45, 0 12px 30px rgba(0, 0, 0, 0.45);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+      }
+      .tpl-fantasy::after {
+        content: "";
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        right: 5px;
+        bottom: 5px;
+        border: 1px solid #b58a45;
+        pointer-events: none;
       }
       .tpl-fantasy h1 {
         font-family: "Cinzel", Georgia, serif;
@@ -530,7 +574,17 @@
         color: #e9d9d9;
         font-family: "Playfair Display", Georgia, "Times New Roman", serif;
         border: 1px solid #8b1a2e;
-        box-shadow: inset 0 0 0 4px #0b0306, inset 0 0 0 5px #5c1220, 0 0 28px rgba(190, 25, 50, 0.4);
+        box-shadow: 0 0 28px rgba(190, 25, 50, 0.4);
+      }
+      .tpl-dark::after {
+        content: "";
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        right: 5px;
+        bottom: 5px;
+        border: 1px solid #5c1220;
+        pointer-events: none;
       }
       .tpl-dark h1 {
         color: #e0344f;
@@ -560,7 +614,18 @@
         font-size: 17px;
         border: 1px solid #20e3ff;
         border-radius: 6px;
-        box-shadow: 0 0 0 3px #04101f, 0 0 0 4px rgba(32, 227, 255, 0.5), 0 0 28px rgba(32, 227, 255, 0.35);
+        box-shadow: 0 0 28px rgba(32, 227, 255, 0.35);
+      }
+      .tpl-scifi::after {
+        content: "";
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        right: 5px;
+        bottom: 5px;
+        border: 1px solid rgba(32, 227, 255, 0.35);
+        border-radius: 3px;
+        pointer-events: none;
       }
       .tpl-scifi h1 {
         font-family: "Orbitron", "Segoe UI", Arial, sans-serif;
@@ -593,7 +658,18 @@
         font-family: "Fredoka", "Nunito", "Segoe UI", sans-serif;
         border: 4px solid #ffffff;
         border-radius: 28px;
-        box-shadow: inset 0 0 0 8px rgba(255, 255, 255, 0.55), 0 10px 28px rgba(190, 120, 200, 0.45);
+        box-shadow: 0 10px 28px rgba(190, 120, 200, 0.45);
+      }
+      .tpl-cute::after {
+        content: "";
+        position: absolute;
+        top: 6px;
+        left: 6px;
+        right: 6px;
+        bottom: 6px;
+        border: 3px solid rgba(255, 255, 255, 0.7);
+        border-radius: 20px;
+        pointer-events: none;
       }
       .tpl-cute h1 {
         color: #d6409f;
@@ -631,7 +707,16 @@
         border: 1px solid #111111;
         border-top: 12px solid #111111;
         border-radius: 2px;
-        box-shadow: inset 0 0 0 4px #f5f2ea, inset 0 0 0 5px #111111;
+      }
+      .tpl-noir::after {
+        content: "";
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        right: 4px;
+        bottom: 4px;
+        border: 1px solid #111111;
+        pointer-events: none;
       }
       .tpl-noir h1 {
         font-family: "Playfair Display", Georgia, "Times New Roman", serif;
@@ -669,6 +754,8 @@
     <div class="page screen" id="app">
       <div class="topbar" id="authBox">
         <h2 class="siteTitle">Character Cards</h2>
+        <div class="topRight">
+          <button onclick="newCharacterButton()">+ New<span class="wideOnly"> character</span></button>
         <div class="profile">
           <button class="avatarBtn" id="avatarBtn" onclick="toggleProfileMenu(event)" aria-label="Your profile">
             <img id="avatarImg" alt="" style="display: none;">
@@ -678,6 +765,7 @@
             <p id="userInfo">Not logged in</p>
             <button class="secondary" onclick="logout()">Log out</button>
           </div>
+        </div>
         </div>
       </div>
 
@@ -720,9 +808,9 @@
           <div class="panel" id="formBox">
             <h3>Character</h3>
             <div class="nameRow">
-              <input id="firstNameInput" placeholder="First name (for example: Kai)" maxlength="50" oninput="renderCard()">
-              <input id="secondNameInput" placeholder="Second name (optional)" maxlength="50" oninput="renderCard()">
-              <input id="lastNameInput" placeholder="Last name (optional)" maxlength="50" oninput="renderCard()">
+              <input id="firstNameInput" placeholder="First name" maxlength="50" oninput="renderCard()">
+              <input id="secondNameInput" placeholder="Second name" maxlength="50" oninput="renderCard()">
+              <input id="lastNameInput" placeholder="Last name" maxlength="50" oninput="renderCard()">
             </div>
             <input id="pronounsInput" placeholder="Pronouns (for example: he/him)" maxlength="50" oninput="renderCard()">
             <input id="ageInput" placeholder="Age (for example: 24)" maxlength="50" oninput="renderCard()">
@@ -739,12 +827,12 @@
               <option value="noir">Noir</option>
             </select>
             <div class="styleRow" id="styleRow">
-              <button class="styleChip" data-template="modern" onclick="setTemplate('modern')"><span class="swatch" style="background-image: linear-gradient(135deg, #4c6ef5, #9775fa);"></span>Modern</button>
-              <button class="styleChip" data-template="fantasy" onclick="setTemplate('fantasy')"><span class="swatch" style="background-image: linear-gradient(135deg, #f3e6bf, #7a4a18);"></span>Fantasy</button>
-              <button class="styleChip" data-template="dark" onclick="setTemplate('dark')"><span class="swatch" style="background-image: linear-gradient(135deg, #8b1a2e, #070204);"></span>Dark</button>
-              <button class="styleChip" data-template="scifi" onclick="setTemplate('scifi')"><span class="swatch" style="background-image: linear-gradient(135deg, #20e3ff, #07162b);"></span>Sci-fi</button>
-              <button class="styleChip" data-template="cute" onclick="setTemplate('cute')"><span class="swatch" style="background-image: linear-gradient(135deg, #ffb3d9, #c9b8ff);"></span>Cute</button>
-              <button class="styleChip" data-template="noir" onclick="setTemplate('noir')"><span class="swatch" style="background-image: linear-gradient(135deg, #111111, #f5f2ea);"></span>Noir</button>
+              <button class="styleChip" data-template="modern" onclick="setTemplate('modern')"><span class="swatch"><svg viewBox="0 0 48 48"><defs><linearGradient id="swM" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4c6ef5"/><stop offset="1" stop-color="#9775fa"/></linearGradient></defs><rect width="48" height="48" fill="#ffffff"/><rect width="48" height="6" fill="url(#swM)"/><rect x="7" y="12" width="34" height="14" rx="4" fill="#dfe5ff"/><rect x="7" y="30" width="14" height="6" rx="3" fill="#eef1ff"/><rect x="24" y="30" width="17" height="6" rx="3" fill="#eef1ff"/><rect x="7" y="40" width="26" height="3" rx="1.5" fill="#c9cfe6"/></svg></span>Modern</button>
+              <button class="styleChip" data-template="fantasy" onclick="setTemplate('fantasy')"><span class="swatch"><svg viewBox="0 0 48 48"><rect width="48" height="48" fill="#ecd9a2"/><rect x="2.5" y="2.5" width="43" height="43" fill="none" stroke="#7a4a18" stroke-width="2"/><rect x="6" y="6" width="36" height="36" fill="none" stroke="#b58a45" stroke-width="1"/><polygon points="24,10 26.5,27 21.5,27" fill="#5e2c0c"/><rect x="16" y="27" width="16" height="3" rx="1" fill="#7a4a18"/><rect x="22.5" y="30" width="3" height="7" fill="#5e2c0c"/><circle cx="24" cy="39" r="2" fill="#7a4a18"/></svg></span>Fantasy</button>
+              <button class="styleChip" data-template="dark" onclick="setTemplate('dark')"><span class="swatch"><svg viewBox="0 0 48 48"><rect width="48" height="48" fill="#14060a"/><rect x="2.5" y="2.5" width="43" height="43" fill="none" stroke="#8b1a2e" stroke-width="1.5"/><circle cx="21" cy="21" r="12" fill="#e3d2d2"/><circle cx="27" cy="18" r="11" fill="#14060a"/><path d="M36 28 C36 28 31 34 31 37 A5 5 0 0 0 41 37 C41 34 36 28 36 28 Z" fill="#d62847"/></svg></span>Dark</button>
+              <button class="styleChip" data-template="scifi" onclick="setTemplate('scifi')"><span class="swatch"><svg viewBox="0 0 48 48"><defs><linearGradient id="swS" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a2038"/><stop offset="1" stop-color="#030a16"/></linearGradient></defs><rect width="48" height="48" fill="url(#swS)"/><g stroke="#20e3ff" stroke-opacity="0.2" stroke-width="0.7"><line x1="12" y1="0" x2="12" y2="48"/><line x1="24" y1="0" x2="24" y2="48"/><line x1="36" y1="0" x2="36" y2="48"/><line x1="0" y1="12" x2="48" y2="12"/><line x1="0" y1="24" x2="48" y2="24"/><line x1="0" y1="36" x2="48" y2="36"/></g><rect x="1.5" y="1.5" width="45" height="45" rx="3" fill="none" stroke="#20e3ff" stroke-width="1.2"/><ellipse cx="24" cy="24" rx="17" ry="5" transform="rotate(-20 24 24)" fill="none" stroke="#6fd3ee" stroke-width="1.5"/><circle cx="24" cy="24" r="8" fill="#0a2038" stroke="#20e3ff" stroke-width="2"/><circle cx="9" cy="10" r="1" fill="#ffffff"/><circle cx="39" cy="12" r="1.2" fill="#ffffff"/><circle cx="37" cy="39" r="1" fill="#ffffff"/></svg></span>Sci-fi</button>
+              <button class="styleChip" data-template="cute" onclick="setTemplate('cute')"><span class="swatch"><svg viewBox="0 0 48 48"><defs><linearGradient id="swC" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd1e8"/><stop offset="1" stop-color="#d9ccff"/></linearGradient></defs><rect width="48" height="48" fill="url(#swC)"/><rect x="3" y="3" width="42" height="42" rx="11" fill="none" stroke="#ffffff" stroke-width="3"/><path d="M24 37 C10 27 9 17 16 14.5 C20 13 23 15 24 18.5 C25 15 28 13 32 14.5 C39 17 38 27 24 37 Z" fill="#f06bb0"/><path d="M0 -4 Q0 0 4 0 Q0 0 0 4 Q0 0 -4 0 Q0 0 0 -4 Z" transform="translate(11 11)" fill="#ffffff"/><path d="M0 -4 Q0 0 4 0 Q0 0 0 4 Q0 0 -4 0 Q0 0 0 -4 Z" transform="translate(38 10)" fill="#ffffff"/><path d="M0 -3 Q0 0 3 0 Q0 0 0 3 Q0 0 -3 0 Q0 0 0 -3 Z" transform="translate(37 39)" fill="#ffe066"/></svg></span>Cute</button>
+              <button class="styleChip" data-template="noir" onclick="setTemplate('noir')"><span class="swatch"><svg viewBox="0 0 48 48"><rect width="48" height="48" fill="#f5f2ea"/><rect width="48" height="7" fill="#111111"/><rect x="6.5" y="9.5" width="35" height="35" fill="none" stroke="#111111" stroke-width="1"/><rect x="10" y="15" width="24" height="6" fill="#111111"/><rect x="10" y="24" width="12" height="2" fill="#111111"/><rect x="10" y="29" width="28" height="1.5" fill="#111111"/><rect x="10" y="33" width="28" height="1.5" fill="#111111"/><rect x="10" y="37" width="19" height="1.5" fill="#111111"/></svg></span>Noir</button>
             </div>
 
             <h4>Extra fields</h4>
@@ -769,7 +857,6 @@
             <div class="actions">
               <button onclick="saveCharacter()">Save character</button>
               <button class="secondary" onclick="downloadCard()">Download card as image</button>
-              <button class="secondary" onclick="newCharacterButton()">New character</button>
             </div>
             <p id="status"></p>
             <input id="shareLink" readonly placeholder="Your share link appears here">
@@ -1355,13 +1442,103 @@
 
       // ---------- Download and reset ----------
 
-      function downloadCard() {
-        html2canvas(document.getElementById("card"), { useCORS: true }).then(function (canvas) {
+      function fileNameFor(name) {
+        const clean = name
+          .replace(/[\\/:*?"<>|]/g, "")
+          .replace(/\s+/g, " ")
+          .trim();
+        return (clean || "character-card") + ".png";
+      }
+
+      // Re-reads a picture fresh from the network and returns it as a data URL
+      // (square-cropped for thumbnails) so the download never depends on browser image caching.
+      async function imageToDataUrl(src, square) {
+        const response = await fetch(src, { mode: "cors", cache: "reload" });
+        if (!response.ok) {
+          throw new Error("Could not read the picture");
+        }
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+
+        try {
+          const img = await new Promise(function (resolve, reject) {
+            const el = new Image();
+            el.onload = function () {
+              resolve(el);
+            };
+            el.onerror = function () {
+              reject(new Error("Could not read the picture"));
+            };
+            el.src = objectUrl;
+          });
+
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+
+          if (square) {
+            const size = 240;
+            const side = Math.min(img.width, img.height);
+            canvas.width = size;
+            canvas.height = size;
+            ctx.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, size, size);
+          } else {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+          }
+
+          return canvas.toDataURL("image/jpeg", 0.92);
+        } finally {
+          URL.revokeObjectURL(objectUrl);
+        }
+      }
+
+      async function downloadCard() {
+        const status = document.getElementById("status");
+        const card = document.getElementById("card");
+        const swapped = [];
+        status.textContent = "Preparing your image...";
+
+        try {
+          const images = Array.from(card.querySelectorAll("img"));
+          for (const img of images) {
+            const original = img.src;
+            if (!original || original.startsWith("data:") || img.style.display === "none") {
+              continue;
+            }
+            try {
+              const data = await imageToDataUrl(original, img.closest(".gallery") !== null);
+              swapped.push({ img: img, src: original });
+              await new Promise(function (resolve) {
+                img.onload = resolve;
+                img.onerror = resolve;
+                img.src = data;
+              });
+              img.onload = null;
+              img.onerror = null;
+            } catch (err) {
+              // If one picture can't be re-read, keep it as it is.
+            }
+          }
+
+          const canvas = await html2canvas(card, {
+            useCORS: true,
+            backgroundColor: null,
+            scale: 2
+          });
+
           const link = document.createElement("a");
-          link.download = "character-card.png";
+          link.download = fileNameFor(getFullName());
           link.href = canvas.toDataURL("image/png");
           link.click();
-        });
+          status.textContent = "";
+        } catch (err) {
+          status.textContent = "Could not make the image: " + err.message;
+        } finally {
+          swapped.forEach(function (item) {
+            item.img.src = item.src;
+          });
+        }
       }
 
       function newCharacterButton() {
