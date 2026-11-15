@@ -4,6 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Character Card</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=EB+Garamond:wght@400;600&family=Fredoka:wght@400;600&family=Inter:wght@400;600;800&family=Orbitron:wght@500;700&family=Playfair+Display:wght@600;700&family=Rajdhani:wght@500;600&display=swap" rel="stylesheet">
     <style>
       * {
         box-sizing: border-box;
@@ -180,6 +183,98 @@
         font-size: 14px;
       }
 
+      /* ----- Style picker, gallery editor, lightbox ----- */
+      .styleRow {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .styleChip {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        width: 76px;
+        padding: 6px;
+        font-size: 13px;
+        color: #e8e8f0;
+        background-color: transparent;
+        border: 2px solid transparent;
+      }
+      .styleChip .swatch {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+      }
+      .styleChip.active {
+        border-color: #6c63ff;
+        background-color: #2a2a3c;
+      }
+      .hint {
+        margin: 0 0 10px 0;
+        font-size: 14px;
+        opacity: 0.7;
+      }
+      .galleryEditor {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .galleryItem {
+        width: 90px;
+        text-align: center;
+      }
+      .galleryItem img {
+        display: block;
+        width: 90px;
+        height: 90px;
+        margin-bottom: 6px;
+        object-fit: cover;
+        border-radius: 8px;
+      }
+      .galleryItem button {
+        width: 100%;
+        padding: 6px;
+        font-size: 13px;
+      }
+      .lightbox {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 100;
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(0, 0, 0, 0.88);
+      }
+      .lightbox.open {
+        display: flex;
+      }
+      .lightbox img {
+        max-width: 90vw;
+        max-height: 88vh;
+        border-radius: 8px;
+      }
+      .lbNav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        padding: 10px 16px;
+        font-size: 28px;
+        background-color: rgba(255, 255, 255, 0.18);
+      }
+      .lbPrev {
+        left: 12px;
+      }
+      .lbNext {
+        right: 12px;
+      }
+
       /* ----- Layout ----- */
       .layout {
         display: grid;
@@ -330,33 +425,98 @@
         white-space: pre-wrap;
       }
 
+      /* ----- Gallery thumbnails on the card ----- */
+      .card .gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+        gap: 6px;
+        margin-bottom: 14px;
+      }
+      .card .gallery img {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1 / 1;
+        object-fit: cover;
+        margin: 0;
+        border-radius: 6px;
+        border-width: 1px;
+        cursor: zoom-in;
+      }
+
       /* ----- Template: modern ----- */
       .tpl-modern {
         background-color: #ffffff;
+        background-image: linear-gradient(90deg, #4c6ef5, #9775fa);
+        background-size: 100% 6px;
+        background-repeat: no-repeat;
         color: #1f2430;
-        font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+        font-family: "Inter", "Segoe UI", -apple-system, Roboto, Arial, sans-serif;
+        border-radius: 20px;
+        padding-top: 28px;
+        box-shadow: 0 12px 32px rgba(40, 50, 120, 0.35);
       }
       .tpl-modern h1 {
-        color: #3b5bdb;
+        color: #1f2430;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+      }
+      .tpl-modern img {
+        border-radius: 14px;
+      }
+      .tpl-modern .stats {
+        gap: 8px;
+      }
+      .tpl-modern .stat {
+        background-color: #eef1ff;
+        padding: 6px 12px;
+        border-radius: 10px;
+      }
+      .tpl-modern .label {
+        color: #4c6ef5;
+        font-weight: 600;
+        opacity: 1;
       }
       .tpl-modern .section {
-        border-top: 1px solid #e3e6ee;
+        border-top: 1px solid #e6e9f5;
       }
 
       /* ----- Template: fantasy ----- */
       .tpl-fantasy {
-        background: linear-gradient(135deg, #f6ebc9, #e6d09a);
+        background-image:
+          radial-gradient(ellipse at top, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0) 60%),
+          radial-gradient(ellipse at bottom right, rgba(138, 90, 32, 0.28), rgba(138, 90, 32, 0) 55%),
+          linear-gradient(135deg, #f3e6bf, #e2c887);
         color: #3a2912;
-        font-family: Georgia, "Palatino Linotype", "Times New Roman", serif;
-        border: 5px double #8a5a20;
+        font-family: "EB Garamond", "Palatino Linotype", Georgia, serif;
+        font-size: 17px;
+        border: 6px double #7a4a18;
+        box-shadow: inset 0 0 0 3px #ecdcab, inset 0 0 0 4px #b58a45, 0 12px 30px rgba(0, 0, 0, 0.45);
       }
       .tpl-fantasy h1 {
-        color: #6b3410;
-        letter-spacing: 0.04em;
+        font-family: "Cinzel", Georgia, serif;
+        color: #5e2c0c;
+        text-align: center;
+        letter-spacing: 0.06em;
+        font-size: 26px;
+      }
+      .tpl-fantasy h1::after {
+        content: "";
+        display: block;
+        width: 60%;
+        height: 2px;
+        margin: 10px auto 0 auto;
+        background-image: linear-gradient(90deg, rgba(154, 106, 42, 0), #9a6a2a, rgba(154, 106, 42, 0));
       }
       .tpl-fantasy img {
-        border: 3px solid #8a5a20;
+        border: 3px solid #7a4a18;
+      }
+      .tpl-fantasy .stats {
+        justify-content: center;
+        text-align: center;
+      }
+      .tpl-fantasy .label {
+        color: #7a4a18;
+        opacity: 1;
       }
       .tpl-fantasy .section {
         border-top: 1px solid #b99556;
@@ -364,20 +524,133 @@
 
       /* ----- Template: dark ----- */
       .tpl-dark {
-        background: linear-gradient(160deg, #1a0a0f, #0c0407);
-        color: #eadada;
-        font-family: Georgia, "Times New Roman", serif;
-        border: 1px solid #7a1424;
-        box-shadow: 0 0 24px rgba(160, 20, 40, 0.35);
+        background-image:
+          radial-gradient(ellipse at top, rgba(120, 15, 35, 0.55), rgba(120, 15, 35, 0) 65%),
+          linear-gradient(160deg, #16070b, #070204);
+        color: #e9d9d9;
+        font-family: "Playfair Display", Georgia, "Times New Roman", serif;
+        border: 1px solid #8b1a2e;
+        box-shadow: inset 0 0 0 4px #0b0306, inset 0 0 0 5px #5c1220, 0 0 28px rgba(190, 25, 50, 0.4);
       }
       .tpl-dark h1 {
-        color: #d12b45;
+        color: #e0344f;
+        letter-spacing: 0.03em;
+        text-shadow: 0 0 14px rgba(224, 52, 79, 0.5);
       }
       .tpl-dark img {
-        border: 2px solid #7a1424;
+        border: 2px solid #8b1a2e;
+      }
+      .tpl-dark .label {
+        color: #c0485c;
+        opacity: 1;
       }
       .tpl-dark .section {
         border-top: 1px solid #4a1520;
+      }
+
+      /* ----- Template: sci-fi ----- */
+      .tpl-scifi {
+        background-image:
+          linear-gradient(rgba(32, 227, 255, 0.06) 1px, rgba(32, 227, 255, 0) 1px),
+          linear-gradient(90deg, rgba(32, 227, 255, 0.06) 1px, rgba(32, 227, 255, 0) 1px),
+          linear-gradient(160deg, #07162b, #030a16);
+        background-size: 100% 22px, 22px 100%, 100% 100%;
+        color: #cfefff;
+        font-family: "Rajdhani", "Segoe UI", Roboto, Arial, sans-serif;
+        font-size: 17px;
+        border: 1px solid #20e3ff;
+        border-radius: 6px;
+        box-shadow: 0 0 0 3px #04101f, 0 0 0 4px rgba(32, 227, 255, 0.5), 0 0 28px rgba(32, 227, 255, 0.35);
+      }
+      .tpl-scifi h1 {
+        font-family: "Orbitron", "Segoe UI", Arial, sans-serif;
+        color: #20e3ff;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 24px;
+        text-shadow: 0 0 12px rgba(32, 227, 255, 0.6);
+      }
+      .tpl-scifi img {
+        border: 1px solid #20e3ff;
+        border-radius: 4px;
+      }
+      .tpl-scifi .label {
+        color: #6fd3ee;
+        letter-spacing: 0.18em;
+        opacity: 1;
+      }
+      .tpl-scifi .value {
+        color: #ffffff;
+      }
+      .tpl-scifi .section {
+        border-top: 1px dashed rgba(32, 227, 255, 0.45);
+      }
+
+      /* ----- Template: cute ----- */
+      .tpl-cute {
+        background-image: linear-gradient(160deg, #ffe3f1, #e4dcff);
+        color: #5a3a6e;
+        font-family: "Fredoka", "Nunito", "Segoe UI", sans-serif;
+        border: 4px solid #ffffff;
+        border-radius: 28px;
+        box-shadow: inset 0 0 0 8px rgba(255, 255, 255, 0.55), 0 10px 28px rgba(190, 120, 200, 0.45);
+      }
+      .tpl-cute h1 {
+        color: #d6409f;
+        text-align: center;
+        font-size: 30px;
+      }
+      .tpl-cute img {
+        border: 4px solid #ffffff;
+        border-radius: 22px;
+      }
+      .tpl-cute .stats {
+        justify-content: center;
+        text-align: center;
+      }
+      .tpl-cute .label {
+        display: inline-block;
+        background-color: #ffffff;
+        color: #c2558f;
+        padding: 2px 10px;
+        border-radius: 999px;
+        letter-spacing: 0.06em;
+        font-weight: 600;
+        opacity: 1;
+        margin-bottom: 4px;
+      }
+      .tpl-cute .section {
+        border-top: 2px dotted #f2a3cf;
+      }
+
+      /* ----- Template: noir ----- */
+      .tpl-noir {
+        background-color: #f5f2ea;
+        color: #111111;
+        font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+        border: 1px solid #111111;
+        border-top: 12px solid #111111;
+        border-radius: 2px;
+        box-shadow: inset 0 0 0 4px #f5f2ea, inset 0 0 0 5px #111111;
+      }
+      .tpl-noir h1 {
+        font-family: "Playfair Display", Georgia, "Times New Roman", serif;
+        font-size: 34px;
+        font-weight: 700;
+        line-height: 1.05;
+        letter-spacing: -0.01em;
+      }
+      .tpl-noir img {
+        border: 1px solid #111111;
+        border-radius: 0;
+      }
+      .tpl-noir .label {
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        opacity: 1;
+      }
+      .tpl-noir .section {
+        border-top: 2px solid #111111;
       }
     </style>
   </head>
@@ -411,7 +684,8 @@
       <div class="layout">
         <div class="cardCol">
           <div class="card tpl-modern" id="card">
-            <img id="cardImage" src="" alt="Character picture" crossorigin="anonymous">
+            <img id="cardImage" src="" alt="Character picture" crossorigin="anonymous" onclick="openMainImage()">
+            <div class="gallery" id="cardGallery" style="display: none;"></div>
             <h1 id="cardName"></h1>
             <div class="stats">
               <div class="stat">
@@ -456,11 +730,22 @@
             <textarea id="storyInput" placeholder="Backstory: who is your character?" rows="4" maxlength="5000" oninput="renderCard()"></textarea>
 
             <h4>Card style</h4>
-            <select id="templateInput" onchange="renderCard()">
+            <select id="templateInput" onchange="renderCard()" style="display: none;">
               <option value="modern">Modern</option>
               <option value="fantasy">Fantasy</option>
               <option value="dark">Dark</option>
+              <option value="scifi">Sci-fi</option>
+              <option value="cute">Cute</option>
+              <option value="noir">Noir</option>
             </select>
+            <div class="styleRow" id="styleRow">
+              <button class="styleChip" data-template="modern" onclick="setTemplate('modern')"><span class="swatch" style="background-image: linear-gradient(135deg, #4c6ef5, #9775fa);"></span>Modern</button>
+              <button class="styleChip" data-template="fantasy" onclick="setTemplate('fantasy')"><span class="swatch" style="background-image: linear-gradient(135deg, #f3e6bf, #7a4a18);"></span>Fantasy</button>
+              <button class="styleChip" data-template="dark" onclick="setTemplate('dark')"><span class="swatch" style="background-image: linear-gradient(135deg, #8b1a2e, #070204);"></span>Dark</button>
+              <button class="styleChip" data-template="scifi" onclick="setTemplate('scifi')"><span class="swatch" style="background-image: linear-gradient(135deg, #20e3ff, #07162b);"></span>Sci-fi</button>
+              <button class="styleChip" data-template="cute" onclick="setTemplate('cute')"><span class="swatch" style="background-image: linear-gradient(135deg, #ffb3d9, #c9b8ff);"></span>Cute</button>
+              <button class="styleChip" data-template="noir" onclick="setTemplate('noir')"><span class="swatch" style="background-image: linear-gradient(135deg, #111111, #f5f2ea);"></span>Noir</button>
+            </div>
 
             <h4>Extra fields</h4>
             <div id="extraFields"></div>
@@ -473,8 +758,13 @@
               <button class="secondary" onclick="addExtraRow('Relationships', '')">+ Relationships</button>
             </div>
 
-            <h4>Picture</h4>
+            <h4>Main picture</h4>
             <input id="imageInput" type="file" accept="image/*" onchange="pickImage()">
+
+            <h4>Extra pictures</h4>
+            <p class="hint">Add up to 6 more. They show as small thumbnails on the card, and anyone can tap one to see it bigger.</p>
+            <input id="galleryInput" type="file" accept="image/*" multiple onchange="addGalleryImages()">
+            <div class="galleryEditor" id="galleryEditor"></div>
 
             <div class="actions">
               <button onclick="saveCharacter()">Save character</button>
@@ -494,6 +784,12 @@
       </div>
     </div>
 
+    <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+      <button class="lbNav lbPrev" id="lbPrev" onclick="lightboxStep(-1, event)">&#8249;</button>
+      <img id="lightboxImg" alt="">
+      <button class="lbNav lbNext" id="lbNext" onclick="lightboxStep(1, event)">&#8250;</button>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
@@ -503,7 +799,8 @@
 
       const BUCKET = "character-images";
       const PLACEHOLDER_IMAGE = "data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20400%20400%27%3E%3Crect%20width%3D%27400%27%20height%3D%27400%27%20fill%3D%27%23d9dce6%27/%3E%3Ccircle%20cx%3D%27200%27%20cy%3D%27150%27%20r%3D%2762%27%20fill%3D%27%23aab0c2%27/%3E%3Cpath%20d%3D%27M70%20380c0-80%2058-130%20130-130s130%2050%20130%20130z%27%20fill%3D%27%23aab0c2%27/%3E%3Ctext%20x%3D%27200%27%20y%3D%27392%27%20font-family%3D%27Arial%27%20font-size%3D%270%27%3E%3C/text%3E%3C/svg%3E";
-      const TEMPLATES = ["modern", "fantasy", "dark"];
+      const TEMPLATES = ["modern", "fantasy", "dark", "scifi", "cute", "noir"];
+      const MAX_GALLERY = 6;
       const MAX_FIELDS = 20;
       const MAX_LABEL = 40;
       const MAX_VALUE = 2000;
@@ -514,6 +811,12 @@
       let pendingImageBlob = null;
       let currentImageUrl = null;
       let savedSnapshot = "";
+      let mainImageUrl = null;
+      let gallery = [];
+      let savedGalleryUrls = [];
+      let galleryCounter = 0;
+      let lightboxList = [];
+      let lightboxIndex = 0;
 
       if (isViewer) {
         document.body.classList.add("viewer");
@@ -728,7 +1031,10 @@
           story: document.getElementById("storyInput").value,
           template: getTemplate(),
           extra: getExtraFields(),
-          newPicture: pendingImageBlob ? true : false
+          newPicture: pendingImageBlob ? true : false,
+          gallery: gallery.map(function (item) {
+            return item.url || item.key;
+          })
         });
       }
 
@@ -746,6 +1052,156 @@
         }
       });
 
+      function setTemplate(name) {
+        document.getElementById("templateInput").value = name;
+        renderCard();
+      }
+
+      // ---------- Extra pictures ----------
+
+      function clearGalleryPreviews() {
+        gallery.forEach(function (item) {
+          if (item.preview) {
+            URL.revokeObjectURL(item.preview);
+          }
+        });
+      }
+
+      function setGallery(urls) {
+        clearGalleryPreviews();
+        gallery = (Array.isArray(urls) ? urls : [])
+          .filter(function (u) {
+            return typeof u === "string" && u !== "";
+          })
+          .map(function (u) {
+            return { key: u, url: u, blob: null, preview: null };
+          });
+        savedGalleryUrls = gallery.map(function (item) {
+          return item.url;
+        });
+        renderGalleryEditor();
+      }
+
+      function renderGalleryEditor() {
+        const box = document.getElementById("galleryEditor");
+        box.textContent = "";
+
+        gallery.forEach(function (item, index) {
+          const wrap = document.createElement("div");
+          wrap.className = "galleryItem";
+
+          const img = document.createElement("img");
+          img.alt = "";
+          img.src = item.preview || item.url;
+
+          const removeBtn = document.createElement("button");
+          removeBtn.className = "danger";
+          removeBtn.textContent = "Remove";
+          removeBtn.onclick = function () {
+            removeGalleryItem(index);
+          };
+
+          wrap.appendChild(img);
+          wrap.appendChild(removeBtn);
+          box.appendChild(wrap);
+        });
+      }
+
+      function removeGalleryItem(index) {
+        const item = gallery[index];
+        if (item && item.preview) {
+          URL.revokeObjectURL(item.preview);
+        }
+        gallery.splice(index, 1);
+        renderGalleryEditor();
+        renderCard();
+      }
+
+      async function addGalleryImages() {
+        const input = document.getElementById("galleryInput");
+        const status = document.getElementById("status");
+        const files = Array.from(input.files);
+        input.value = "";
+
+        for (const file of files) {
+          if (gallery.length >= MAX_GALLERY) {
+            status.textContent = "You can add up to " + MAX_GALLERY + " extra pictures.";
+            break;
+          }
+          try {
+            const blob = await resizeImage(file, 800);
+            galleryCounter += 1;
+            gallery.push({
+              key: "new" + galleryCounter,
+              url: null,
+              blob: blob,
+              preview: URL.createObjectURL(blob)
+            });
+          } catch (err) {
+            status.textContent = err.message;
+          }
+        }
+
+        renderGalleryEditor();
+        renderCard();
+      }
+
+      // ---------- Big picture viewer ----------
+
+      function getAllImages() {
+        const list = [];
+        if (mainImageUrl) {
+          list.push(mainImageUrl);
+        }
+        gallery.forEach(function (item) {
+          list.push(item.preview || item.url);
+        });
+        return list;
+      }
+
+      function openLightbox(src) {
+        lightboxList = getAllImages();
+        lightboxIndex = Math.max(0, lightboxList.indexOf(src));
+        drawLightbox();
+        document.getElementById("lightbox").classList.add("open");
+      }
+
+      function openMainImage() {
+        if (mainImageUrl) {
+          openLightbox(mainImageUrl);
+        }
+      }
+
+      function drawLightbox() {
+        document.getElementById("lightboxImg").src = lightboxList[lightboxIndex] || "";
+        const many = lightboxList.length > 1;
+        document.getElementById("lbPrev").style.display = many ? "" : "none";
+        document.getElementById("lbNext").style.display = many ? "" : "none";
+      }
+
+      function lightboxStep(step, event) {
+        event.stopPropagation();
+        lightboxIndex = (lightboxIndex + step + lightboxList.length) % lightboxList.length;
+        drawLightbox();
+      }
+
+      function closeLightbox() {
+        document.getElementById("lightbox").classList.remove("open");
+      }
+
+      document.addEventListener("keydown", function (event) {
+        if (!document.getElementById("lightbox").classList.contains("open")) {
+          return;
+        }
+        if (event.key === "Escape") {
+          closeLightbox();
+        } else if (event.key === "ArrowLeft") {
+          lightboxStep(-1, event);
+        } else if (event.key === "ArrowRight") {
+          lightboxStep(1, event);
+        }
+      });
+
       function renderCard() {
         const name = getFullName();
         const age = document.getElementById("ageInput").value.trim();
@@ -754,6 +1210,24 @@
         const story = document.getElementById("storyInput").value.trim();
 
         document.getElementById("card").className = "card tpl-" + getTemplate();
+        document.querySelectorAll(".styleChip").forEach(function (chip) {
+          chip.classList.toggle("active", chip.dataset.template === getTemplate());
+        });
+
+        const galleryBox = document.getElementById("cardGallery");
+        galleryBox.textContent = "";
+        gallery.forEach(function (item) {
+          const src = item.preview || item.url;
+          const thumb = document.createElement("img");
+          thumb.crossOrigin = "anonymous";
+          thumb.alt = "";
+          thumb.src = src;
+          thumb.onclick = function () {
+            openLightbox(src);
+          };
+          galleryBox.appendChild(thumb);
+        });
+        galleryBox.style.display = gallery.length > 0 ? "" : "none";
         document.getElementById("cardName").textContent = name || "Character name";
         document.getElementById("cardAge").textContent = age || "?";
         document.getElementById("cardGender").textContent = gender || "?";
@@ -793,6 +1267,7 @@
         document.getElementById("templateInput").value =
           TEMPLATES.includes(data.template) ? data.template : "modern";
         setExtraFields(data.extra);
+        setGallery(data.gallery);
         renderCard();
       }
 
@@ -800,6 +1275,8 @@
 
       function showImage(url) {
         const img = document.getElementById("cardImage");
+        mainImageUrl = url || null;
+        img.style.cursor = url ? "zoom-in" : "";
         if (url) {
           img.src = url;
           img.style.display = "";
@@ -908,6 +1385,11 @@
         document.getElementById("storyInput").value = "";
         document.getElementById("templateInput").value = "modern";
         document.getElementById("extraFields").textContent = "";
+        clearGalleryPreviews();
+        gallery = [];
+        savedGalleryUrls = [];
+        renderGalleryEditor();
+        document.getElementById("galleryInput").value = "";
         document.getElementById("shareLink").value = "";
         document.getElementById("status").textContent = "";
         renderCard();
@@ -971,6 +1453,25 @@
           fields.image_url = db.storage.from(BUCKET).getPublicUrl(newImagePath).data.publicUrl;
         }
 
+        const newGalleryPaths = [];
+        const galleryUrls = [];
+        for (const item of gallery) {
+          if (!item.blob) {
+            galleryUrls.push(item.url);
+            continue;
+          }
+          const path = currentUser.id + "/" + crypto.randomUUID() + ".jpg";
+          const up = await db.storage.from(BUCKET).upload(path, item.blob, { contentType: "image/jpeg" });
+          if (up.error) {
+            await db.storage.from(BUCKET).remove(newGalleryPaths.concat(newImagePath ? [newImagePath] : []));
+            status.textContent = "Could not upload an extra picture: " + up.error.message;
+            return;
+          }
+          newGalleryPaths.push(path);
+          galleryUrls.push(db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl);
+        }
+        fields.gallery = galleryUrls;
+
         let result;
         if (editingId) {
           result = await db
@@ -988,8 +1489,9 @@
         }
 
         if (result.error) {
-          if (newImagePath) {
-            await db.storage.from(BUCKET).remove([newImagePath]);
+          const toRemove = newGalleryPaths.concat(newImagePath ? [newImagePath] : []);
+          if (toRemove.length > 0) {
+            await db.storage.from(BUCKET).remove(toRemove);
           }
           status.textContent = "Could not save: " + result.error.message;
           return;
@@ -1003,6 +1505,14 @@
           pendingImageBlob = null;
           document.getElementById("imageInput").value = "";
         }
+
+        const removedUrls = savedGalleryUrls.filter(function (u) {
+          return !galleryUrls.includes(u);
+        });
+        for (const u of removedUrls) {
+          await removeImage(u);
+        }
+        setGallery(galleryUrls);
 
         editingId = result.data.id;
         const link = window.location.origin + window.location.pathname + "?id=" + result.data.id;
@@ -1148,7 +1658,7 @@
 
         const found = await db
           .from("characters")
-          .select("image_url")
+          .select("*")
           .eq("id", id)
           .single();
 
@@ -1164,6 +1674,11 @@
 
         if (found.data && found.data.image_url) {
           await removeImage(found.data.image_url);
+        }
+        if (found.data && Array.isArray(found.data.gallery)) {
+          for (const u of found.data.gallery) {
+            await removeImage(u);
+          }
         }
 
         if (editingId === id) {
