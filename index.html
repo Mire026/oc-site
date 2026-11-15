@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Character Card</title>
+    <style>
+      body {
+        background-color: #1e1e2e;
+        font-family: Arial, sans-serif;
+      }
+      .card {
+        background-color: white;
+        width: 300px;
+        padding: 20px;
+        border-radius: 12px;
+        margin: 40px auto;
+      }
+      img {
+        width: 100%;
+        border-radius: 8px;
+      }
+      .form {
+        background-color: white;
+        width: 300px;
+        padding: 20px;
+        border-radius: 12px;
+        margin: 40px auto;
+      }
+      .form input {
+        display: block;
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card" id="card">
+      <img id="cardImage" src="kai.jpg" alt="Character picture">
+      <h1 id="cardName">Kai</h1>
+      <p>Age: <span id="cardAge">24</span></p>
+      <p>Gender: <span id="cardGender">Male</span></p>
+      <p>Backstory: <span id="cardStory">A wandering knight.</span></p>
+    </div>
+
+    <div class="form">
+      <input id="nameInput" placeholder="Name">
+      <input id="ageInput" placeholder="Age">
+      <input id="genderInput" placeholder="Gender">
+      <input id="storyInput" placeholder="Backstory">
+      <input id="imageInput" type="file" accept="image/*">
+      <button onclick="updateCard()">Update card</button>
+      <button onclick="downloadCard()">Download card as image</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+      function setText(cardId, inputId) {
+        const value = document.getElementById(inputId).value;
+        if (value !== "") {
+          document.getElementById(cardId).textContent = value;
+        }
+      }
+
+      function updateCard() {
+        setText("cardName", "nameInput");
+        setText("cardAge", "ageInput");
+        setText("cardGender", "genderInput");
+        setText("cardStory", "storyInput");
+
+        const file = document.getElementById("imageInput").files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            document.getElementById("cardImage").src = e.target.result;
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+
+      function downloadCard() {
+        html2canvas(document.getElementById("card")).then(function (canvas) {
+          const link = document.createElement("a");
+          link.download = "character-card.png";
+          link.href = canvas.toDataURL("image/png");
+          link.click();
+        });
+      }
+    </script>
+  </body>
+</html>
