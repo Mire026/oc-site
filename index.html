@@ -13,6 +13,7 @@
         padding: 20px;
         border-radius: 12px;
         margin: 40px auto;
+        overflow-wrap: anywhere;
       }
       img {
         width: 100%;
@@ -25,12 +26,32 @@
         border-radius: 12px;
         margin: 40px auto;
       }
-      .form input {
+      .form input,
+      .form textarea {
         display: block;
+        width: 100%;
+        box-sizing: border-box;
         margin-bottom: 10px;
+        font-family: inherit;
       }
       .row {
         margin-bottom: 8px;
+      }
+      .extraRow {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 8px;
+        margin-bottom: 10px;
+      }
+      .multiline {
+        white-space: pre-wrap;
+      }
+      .extra {
+        margin-top: 12px;
+      }
+      .extra p {
+        margin: 4px 0 0 0;
+        white-space: pre-wrap;
       }
     </style>
   </head>
@@ -43,21 +64,34 @@
 
     <div class="card" id="card">
       <img id="cardImage" src="kai.jpg" alt="Character picture" crossorigin="anonymous">
-      <h1 id="cardName">Kai</h1>
-      <p>Age: <span id="cardAge">24</span></p>
-      <p>Gender: <span id="cardGender">Male</span></p>
-      <p>Backstory: <span id="cardStory">A wandering knight.</span></p>
+      <h1 id="cardName"></h1>
+      <p>Age: <span id="cardAge"></span></p>
+      <p>Gender: <span id="cardGender"></span></p>
+      <p>Backstory:</p>
+      <p class="multiline" id="cardStory"></p>
+      <div id="cardExtra"></div>
     </div>
 
     <div class="form" id="formBox">
-      <input id="nameInput" placeholder="Name">
-      <input id="ageInput" placeholder="Age">
-      <input id="genderInput" placeholder="Gender">
-      <input id="storyInput" placeholder="Backstory">
-      <input id="imageInput" type="file" accept="image/*">
-      <button onclick="updateCard()">Update card</button>
-      <button onclick="downloadCard()">Download card as image</button>
+      <input id="nameInput" placeholder="Name" maxlength="100" value="Kai" oninput="renderCard()">
+      <input id="ageInput" placeholder="Age" maxlength="50" value="24" oninput="renderCard()">
+      <input id="genderInput" placeholder="Gender" maxlength="50" value="Male" oninput="renderCard()">
+      <textarea id="storyInput" placeholder="Backstory" rows="4" maxlength="5000" oninput="renderCard()">A wandering knight.</textarea>
+
+      <h4>Extra fields</h4>
+      <div id="extraFields"></div>
+      <button onclick="addExtraRow('', '')">+ Custom field</button>
+      <button onclick="addExtraRow('Personality', '')">+ Personality</button>
+      <button onclick="addExtraRow('Appearance', '')">+ Appearance</button>
+      <button onclick="addExtraRow('Species', '')">+ Species</button>
+      <button onclick="addExtraRow('Abilities', '')">+ Abilities</button>
+      <button onclick="addExtraRow('Relationships', '')">+ Relationships</button>
+
+      <h4>Picture</h4>
+      <input id="imageInput" type="file" accept="image/*" onchange="pickImage()">
+
       <button onclick="saveCharacter()">Save character</button>
+      <button onclick="downloadCard()">Download card as image</button>
       <button onclick="newCharacter()">New character</button>
       <p id="status"></p>
       <input id="shareLink" readonly placeholder="Your share link appears here">
@@ -82,6 +116,10 @@
       const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
       const BUCKET = "character-images";
+      const MAX_FIELDS = 20;
+      const MAX_LABEL = 40;
+      const MAX_VALUE = 2000;
+
       const isViewer = new URLSearchParams(window.location.search).has("id");
       let currentUser = null;
       let editingId = null;
@@ -139,6 +177,117 @@
         }, 0);
       });
 
+      // ---------- Extra fields ----------
+
+      function addExtraRow(label, value) {
+        const container = document.getElementById("extraFields");
+
+        if (container.children.length >= MAX_FIELDS) {
+          document.getElementById("status").textContent =
+            "You can have up to " + MAX_FIELDS + " extra fields.";
+          return;
+        }
+
+        const row = document.createElement("div");
+        row.className = "extraRow";
+
+        const labelInput = document.createElement("input");
+        labelInput.className = "extraLabel";
+        labelInput.placeholder = "Label (for example: Personality)";
+        labelInput.maxLength = MAX_LABEL;
+        labelInput.value = label || "";
+        labelInput.oninput = renderCard;
+
+        const valueInput = document.createElement("textarea");
+        valueInput.className = "extraValue";
+        valueInput.placeholder = "Details";
+        valueInput.rows = 3;
+        valueInput.maxLength = MAX_VALUE;
+        valueInput.value = value || "";
+        valueInput.oninput = renderCard;
+
+        const removeBtn = document.createElement("button");
+        removeBtn.textContent = "Remove field";
+        removeBtn.onclick = function () {
+          row.remove();
+          renderCard();
+        };
+
+        row.appendChild(labelInput);
+        row.appendChild(valueInput);
+        row.appendChild(removeBtn);
+        container.appendChild(row);
+        renderCard();
+      }
+
+      function getExtraFields() {
+        const result = [];
+        const rows = document.querySelectorAll("#extraFields .extraRow");
+
+        rows.forEach(function (row) {
+          const label = row.querySelector(".extraLabel").value.trim();
+          const value = row.querySelector(".extraValue").value.trim();
+          if (label !== "" && value !== "") {
+            result.push({ label: label, value: value });
+          }
+        });
+
+        return result;
+      }
+
+      function setExtraFields(list) {
+        document.getElementById("extraFields").textContent = "";
+        if (!Array.isArray(list)) {
+          return;
+        }
+        list.forEach(function (field) {
+          if (field && field.label !== undefined && field.value !== undefined) {
+            addExtraRow(String(field.label), String(field.value));
+          }
+        });
+      }
+
+      // ---------- Drawing the card ----------
+
+      function renderCard() {
+        const name = document.getElementById("nameInput").value.trim();
+        const age = document.getElementById("ageInput").value.trim();
+        const gender = document.getElementById("genderInput").value.trim();
+        const story = document.getElementById("storyInput").value.trim();
+
+        document.getElementById("cardName").textContent = name || "Character name";
+        document.getElementById("cardAge").textContent = age || "?";
+        document.getElementById("cardGender").textContent = gender || "?";
+        document.getElementById("cardStory").textContent = story || "No backstory yet.";
+
+        const box = document.getElementById("cardExtra");
+        box.textContent = "";
+
+        getExtraFields().forEach(function (field) {
+          const wrapper = document.createElement("div");
+          wrapper.className = "extra";
+
+          const title = document.createElement("strong");
+          title.textContent = field.label;
+
+          const body = document.createElement("p");
+          body.textContent = field.value;
+
+          wrapper.appendChild(title);
+          wrapper.appendChild(body);
+          box.appendChild(wrapper);
+        });
+      }
+
+      function fillForm(data) {
+        document.getElementById("nameInput").value = data.name || "";
+        document.getElementById("ageInput").value = data.age || "";
+        document.getElementById("genderInput").value = data.gender || "";
+        document.getElementById("storyInput").value = data.backstory || "";
+        setExtraFields(data.extra);
+        renderCard();
+      }
+
       // ---------- Pictures ----------
 
       function showImage(url) {
@@ -189,6 +338,20 @@
         });
       }
 
+      async function pickImage() {
+        const file = document.getElementById("imageInput").files[0];
+        pendingImageBlob = null;
+        if (!file) {
+          return;
+        }
+        try {
+          pendingImageBlob = await resizeImage(file, 800);
+          showImage(URL.createObjectURL(pendingImageBlob));
+        } catch (err) {
+          document.getElementById("status").textContent = err.message;
+        }
+      }
+
       async function removeImage(url) {
         if (!url) {
           return;
@@ -202,31 +365,7 @@
         await db.storage.from(BUCKET).remove([path]);
       }
 
-      // ---------- Card editing ----------
-
-      function setText(cardId, inputId) {
-        const value = document.getElementById(inputId).value;
-        if (value !== "") {
-          document.getElementById(cardId).textContent = value;
-        }
-      }
-
-      async function updateCard() {
-        setText("cardName", "nameInput");
-        setText("cardAge", "ageInput");
-        setText("cardGender", "genderInput");
-        setText("cardStory", "storyInput");
-
-        const file = document.getElementById("imageInput").files[0];
-        if (file) {
-          try {
-            pendingImageBlob = await resizeImage(file, 800);
-            showImage(URL.createObjectURL(pendingImageBlob));
-          } catch (err) {
-            document.getElementById("status").textContent = err.message;
-          }
-        }
-      }
+      // ---------- Download and reset ----------
 
       function downloadCard() {
         html2canvas(document.getElementById("card"), { useCORS: true }).then(function (canvas) {
@@ -243,16 +382,14 @@
         currentImageUrl = null;
         showImage(null);
         document.getElementById("imageInput").value = "";
-        document.getElementById("cardName").textContent = "Character name";
-        document.getElementById("cardAge").textContent = "?";
-        document.getElementById("cardGender").textContent = "?";
-        document.getElementById("cardStory").textContent = "Write a backstory.";
         document.getElementById("nameInput").value = "";
         document.getElementById("ageInput").value = "";
         document.getElementById("genderInput").value = "";
         document.getElementById("storyInput").value = "";
+        document.getElementById("extraFields").textContent = "";
         document.getElementById("shareLink").value = "";
         document.getElementById("status").textContent = "";
+        renderCard();
       }
 
       // ---------- Saving ----------
@@ -265,13 +402,30 @@
           return;
         }
 
+        const name = document.getElementById("nameInput").value.trim();
+        if (name === "") {
+          status.textContent = "Please give your character a name.";
+          return;
+        }
+
         status.textContent = "Saving...";
 
+        const file = document.getElementById("imageInput").files[0];
+        if (file && !pendingImageBlob) {
+          try {
+            pendingImageBlob = await resizeImage(file, 800);
+          } catch (err) {
+            status.textContent = err.message;
+            return;
+          }
+        }
+
         const fields = {
-          name: document.getElementById("cardName").textContent,
-          age: document.getElementById("cardAge").textContent,
-          gender: document.getElementById("cardGender").textContent,
-          backstory: document.getElementById("cardStory").textContent
+          name: name,
+          age: document.getElementById("ageInput").value.trim(),
+          gender: document.getElementById("genderInput").value.trim(),
+          backstory: document.getElementById("storyInput").value.trim(),
+          extra: getExtraFields()
         };
 
         let newImagePath = null;
@@ -406,10 +560,7 @@
         currentImageUrl = data.image_url;
         document.getElementById("imageInput").value = "";
         showImage(data.image_url);
-        document.getElementById("cardName").textContent = data.name;
-        document.getElementById("cardAge").textContent = data.age;
-        document.getElementById("cardGender").textContent = data.gender;
-        document.getElementById("cardStory").textContent = data.backstory;
+        fillForm(data);
         document.getElementById("shareLink").value =
           window.location.origin + window.location.pathname + "?id=" + data.id;
         document.getElementById("status").textContent = "Editing " + data.name;
@@ -462,6 +613,7 @@
         document.getElementById("cardAge").textContent = "";
         document.getElementById("cardGender").textContent = "";
         document.getElementById("cardStory").textContent = "";
+        document.getElementById("cardExtra").textContent = "";
 
         const { data, error } = await db
           .from("characters")
@@ -475,12 +627,10 @@
         }
 
         showImage(data.image_url);
-        document.getElementById("cardName").textContent = data.name;
-        document.getElementById("cardAge").textContent = data.age;
-        document.getElementById("cardGender").textContent = data.gender;
-        document.getElementById("cardStory").textContent = data.backstory;
+        fillForm(data);
       }
 
+      renderCard();
       loadCharacter();
     </script>
   </body>
