@@ -42,7 +42,7 @@
     </div>
 
     <div class="card" id="card">
-      <img id="cardImage" src="kai.jpg" alt="Character picture">
+      <img id="cardImage" src="kai.jpg" alt="Character picture" crossorigin="anonymous">
       <h1 id="cardName">Kai</h1>
       <p>Age: <span id="cardAge">24</span></p>
       <p>Gender: <span id="cardGender">Male</span></p>
@@ -81,9 +81,12 @@
       const SUPABASE_KEY = "sb_publishable_4voRPIIlS73ex4K8woa0ow_Nbzwbxq7";
       const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+      const BUCKET = "character-images";
       const isViewer = new URLSearchParams(window.location.search).has("id");
       let currentUser = null;
       let editingId = null;
+      let pendingImageBlob = null;
+      let currentImageUrl = null;
 
       // ---------- Login ----------
 
@@ -136,6 +139,69 @@
         }, 0);
       });
 
+      // ---------- Pictures ----------
+
+      function showImage(url) {
+        const img = document.getElementById("cardImage");
+        if (url) {
+          img.src = url;
+          img.style.display = "";
+        } else {
+          img.style.display = "none";
+        }
+      }
+
+      function resizeImage(file, maxSize) {
+        return new Promise(function (resolve, reject) {
+          const img = new Image();
+          const url = URL.createObjectURL(file);
+
+          img.onload = function () {
+            const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+            const w = Math.round(img.width * scale);
+            const h = Math.round(img.height * scale);
+
+            const canvas = document.createElement("canvas");
+            canvas.width = w;
+            canvas.height = h;
+
+            const ctx = canvas.getContext("2d");
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, w, h);
+            ctx.drawImage(img, 0, 0, w, h);
+
+            URL.revokeObjectURL(url);
+            canvas.toBlob(function (blob) {
+              if (blob) {
+                resolve(blob);
+              } else {
+                reject(new Error("Could not process the picture"));
+              }
+            }, "image/jpeg", 0.85);
+          };
+
+          img.onerror = function () {
+            URL.revokeObjectURL(url);
+            reject(new Error("Could not read the picture"));
+          };
+
+          img.src = url;
+        });
+      }
+
+      async function removeImage(url) {
+        if (!url) {
+          return;
+        }
+        const marker = "/" + BUCKET + "/";
+        const index = url.indexOf(marker);
+        if (index === -1) {
+          return;
+        }
+        const path = url.slice(index + marker.length);
+        await db.storage.from(BUCKET).remove([path]);
+      }
+
       // ---------- Card editing ----------
 
       function setText(cardId, inputId) {
@@ -145,7 +211,7 @@
         }
       }
 
-      function updateCard() {
+      async function updateCard() {
         setText("cardName", "nameInput");
         setText("cardAge", "ageInput");
         setText("cardGender", "genderInput");
@@ -153,16 +219,17 @@
 
         const file = document.getElementById("imageInput").files[0];
         if (file) {
-          const reader = new FileReader();
-          reader.onload = function (e) {
-            document.getElementById("cardImage").src = e.target.result;
-          };
-          reader.readAsDataURL(file);
+          try {
+            pendingImageBlob = await resizeImage(file, 800);
+            showImage(URL.createObjectURL(pendingImageBlob));
+          } catch (err) {
+            document.getElementById("status").textContent = err.message;
+          }
         }
       }
 
       function downloadCard() {
-        html2canvas(document.getElementById("card")).then(function (canvas) {
+        html2canvas(document.getElementById("card"), { useCORS: true }).then(function (canvas) {
           const link = document.createElement("a");
           link.download = "character-card.png";
           link.href = canvas.toDataURL("image/png");
@@ -172,6 +239,10 @@
 
       function newCharacter() {
         editingId = null;
+        pendingImageBlob = null;
+        currentImageUrl = null;
+        showImage(null);
+        document.getElementById("imageInput").value = "";
         document.getElementById("cardName").textContent = "Character name";
         document.getElementById("cardAge").textContent = "?";
         document.getElementById("cardGender").textContent = "?";
@@ -203,6 +274,21 @@
           backstory: document.getElementById("cardStory").textContent
         };
 
+        let newImagePath = null;
+        if (pendingImageBlob) {
+          newImagePath = currentUser.id + "/" + crypto.randomUUID() + ".jpg";
+          const upload = await db.storage
+            .from(BUCKET)
+            .upload(newImagePath, pendingImageBlob, { contentType: "image/jpeg" });
+
+          if (upload.error) {
+            status.textContent = "Could not upload the picture: " + upload.error.message;
+            return;
+          }
+
+          fields.image_url = db.storage.from(BUCKET).getPublicUrl(newImagePath).data.publicUrl;
+        }
+
         let result;
         if (editingId) {
           result = await db
@@ -220,8 +306,20 @@
         }
 
         if (result.error) {
+          if (newImagePath) {
+            await db.storage.from(BUCKET).remove([newImagePath]);
+          }
           status.textContent = "Could not save: " + result.error.message;
           return;
+        }
+
+        if (pendingImageBlob) {
+          if (currentImageUrl) {
+            await removeImage(currentImageUrl);
+          }
+          currentImageUrl = fields.image_url;
+          pendingImageBlob = null;
+          document.getElementById("imageInput").value = "";
         }
 
         editingId = result.data.id;
@@ -304,6 +402,10 @@
         }
 
         editingId = data.id;
+        pendingImageBlob = null;
+        currentImageUrl = data.image_url;
+        document.getElementById("imageInput").value = "";
+        showImage(data.image_url);
         document.getElementById("cardName").textContent = data.name;
         document.getElementById("cardAge").textContent = data.age;
         document.getElementById("cardGender").textContent = data.gender;
@@ -318,6 +420,12 @@
           return;
         }
 
+        const found = await db
+          .from("characters")
+          .select("image_url")
+          .eq("id", id)
+          .single();
+
         const { error } = await db
           .from("characters")
           .delete()
@@ -326,6 +434,10 @@
         if (error) {
           document.getElementById("status").textContent = "Could not delete: " + error.message;
           return;
+        }
+
+        if (found.data && found.data.image_url) {
+          await removeImage(found.data.image_url);
         }
 
         if (editingId === id) {
@@ -345,6 +457,7 @@
         document.getElementById("authBox").style.display = "none";
         document.getElementById("formBox").style.display = "none";
         document.getElementById("viewerBox").style.display = "block";
+        showImage(null);
         document.getElementById("cardName").textContent = "Loading...";
         document.getElementById("cardAge").textContent = "";
         document.getElementById("cardGender").textContent = "";
@@ -361,6 +474,7 @@
           return;
         }
 
+        showImage(data.image_url);
         document.getElementById("cardName").textContent = data.name;
         document.getElementById("cardAge").textContent = data.age;
         document.getElementById("cardGender").textContent = data.gender;
