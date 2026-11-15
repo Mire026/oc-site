@@ -1,111 +1,322 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Character Card</title>
     <style>
+      * {
+        box-sizing: border-box;
+      }
       body {
+        margin: 0;
+        background-color: #12121c;
+        color: #e8e8f0;
+        font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+        line-height: 1.4;
+      }
+      .page {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 16px;
+      }
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+      }
+      .topbar p {
+        margin: 0;
+      }
+
+      /* ----- Layout ----- */
+      .layout {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+      @media (min-width: 820px) {
+        .layout {
+          grid-template-columns: 380px 1fr;
+          align-items: start;
+        }
+        .cardCol {
+          position: sticky;
+          top: 16px;
+        }
+      }
+      body.viewer .layout {
+        grid-template-columns: 1fr;
+        max-width: 420px;
+        margin: 0 auto;
+      }
+      body.viewer .cardCol {
+        position: static;
+      }
+      body.viewer .editorCol {
+        display: none;
+      }
+
+      /* ----- Panels, inputs, buttons ----- */
+      .panel {
         background-color: #1e1e2e;
-        font-family: Arial, sans-serif;
-      }
-      .card {
-        background-color: white;
-        width: 300px;
-        padding: 20px;
+        border: 1px solid #32324a;
         border-radius: 12px;
-        margin: 40px auto;
-        overflow-wrap: anywhere;
+        padding: 16px;
+        margin-bottom: 16px;
       }
-      img {
-        width: 100%;
-        border-radius: 8px;
+      .panel h3,
+      .panel h4 {
+        margin: 0 0 10px 0;
       }
-      .form {
-        background-color: white;
-        width: 300px;
-        padding: 20px;
-        border-radius: 12px;
-        margin: 40px auto;
-      }
-      .form input,
-      .form textarea {
+      .panel input,
+      .panel textarea,
+      .panel select {
         display: block;
         width: 100%;
-        box-sizing: border-box;
         margin-bottom: 10px;
+        padding: 10px;
         font-family: inherit;
+        font-size: 16px;
+        color: #f0f0f8;
+        background-color: #2a2a3c;
+        border: 1px solid #3a3a52;
+        border-radius: 8px;
+      }
+      .panel input[type="file"] {
+        padding: 8px;
+      }
+      button {
+        padding: 10px 14px;
+        font-family: inherit;
+        font-size: 15px;
+        color: white;
+        background-color: #6c63ff;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      button.secondary {
+        background-color: #3a3a52;
+      }
+      button.danger {
+        background-color: #a32638;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 10px 0;
       }
       .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
         margin-bottom: 8px;
       }
+      .row span {
+        overflow-wrap: anywhere;
+      }
       .extraRow {
-        border: 1px solid #ddd;
+        border: 1px solid #3a3a52;
         border-radius: 8px;
-        padding: 8px;
+        padding: 10px;
         margin-bottom: 10px;
       }
-      .multiline {
-        white-space: pre-wrap;
+      #status {
+        min-height: 1.4em;
+        margin: 8px 0;
       }
-      .extra {
-        margin-top: 12px;
+
+      /* ----- The card ----- */
+      .card {
+        width: 100%;
+        max-width: 380px;
+        margin: 0 auto 16px auto;
+        padding: 22px;
+        border-radius: 16px;
+        overflow-wrap: anywhere;
       }
-      .extra p {
+      .card img {
+        display: block;
+        width: 100%;
+        height: auto;
+        margin-bottom: 14px;
+        border-radius: 10px;
+      }
+      .card h1 {
+        margin: 0 0 12px 0;
+        font-size: 28px;
+        line-height: 1.15;
+      }
+      .stats {
+        display: flex;
+        gap: 24px;
+        margin-bottom: 4px;
+      }
+      .stat {
+        display: block;
+      }
+      .label {
+        display: block;
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        opacity: 0.7;
+      }
+      .value {
+        display: block;
+        font-size: 16px;
+      }
+      .section {
+        margin-top: 14px;
+        padding-top: 12px;
+      }
+      .section p {
         margin: 4px 0 0 0;
         white-space: pre-wrap;
+      }
+
+      /* ----- Template: modern ----- */
+      .tpl-modern {
+        background-color: #ffffff;
+        color: #1f2430;
+        font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+      }
+      .tpl-modern h1 {
+        color: #3b5bdb;
+      }
+      .tpl-modern .section {
+        border-top: 1px solid #e3e6ee;
+      }
+
+      /* ----- Template: fantasy ----- */
+      .tpl-fantasy {
+        background: linear-gradient(135deg, #f6ebc9, #e6d09a);
+        color: #3a2912;
+        font-family: Georgia, "Palatino Linotype", "Times New Roman", serif;
+        border: 5px double #8a5a20;
+      }
+      .tpl-fantasy h1 {
+        color: #6b3410;
+        letter-spacing: 0.04em;
+      }
+      .tpl-fantasy img {
+        border: 3px solid #8a5a20;
+      }
+      .tpl-fantasy .section {
+        border-top: 1px solid #b99556;
+      }
+
+      /* ----- Template: dark ----- */
+      .tpl-dark {
+        background: linear-gradient(160deg, #1a0a0f, #0c0407);
+        color: #eadada;
+        font-family: Georgia, "Times New Roman", serif;
+        border: 1px solid #7a1424;
+        box-shadow: 0 0 24px rgba(160, 20, 40, 0.35);
+      }
+      .tpl-dark h1 {
+        color: #d12b45;
+      }
+      .tpl-dark img {
+        border: 2px solid #7a1424;
+      }
+      .tpl-dark .section {
+        border-top: 1px solid #4a1520;
       }
     </style>
   </head>
   <body>
-    <div class="form" id="authBox">
-      <p id="userInfo">Not logged in</p>
-      <button id="loginBtn" onclick="loginWithDiscord()">Log in with Discord</button>
-      <button id="logoutBtn" onclick="logout()" style="display: none;">Log out</button>
-    </div>
+    <div class="page">
+      <div class="topbar" id="authBox">
+        <p id="userInfo">Not logged in</p>
+        <div>
+          <button id="loginBtn" onclick="loginWithDiscord()">Log in with Discord</button>
+          <button id="logoutBtn" class="secondary" onclick="logout()" style="display: none;">Log out</button>
+        </div>
+      </div>
 
-    <div class="card" id="card">
-      <img id="cardImage" src="kai.jpg" alt="Character picture" crossorigin="anonymous">
-      <h1 id="cardName"></h1>
-      <p>Age: <span id="cardAge"></span></p>
-      <p>Gender: <span id="cardGender"></span></p>
-      <p>Backstory:</p>
-      <p class="multiline" id="cardStory"></p>
-      <div id="cardExtra"></div>
-    </div>
+      <div class="layout">
+        <div class="cardCol">
+          <div class="card tpl-modern" id="card">
+            <img id="cardImage" src="kai.jpg" alt="Character picture" crossorigin="anonymous">
+            <h1 id="cardName"></h1>
+            <div class="stats">
+              <div class="stat">
+                <span class="label">Age</span>
+                <span class="value" id="cardAge"></span>
+              </div>
+              <div class="stat">
+                <span class="label">Gender</span>
+                <span class="value" id="cardGender"></span>
+              </div>
+            </div>
+            <div class="section">
+              <span class="label">Backstory</span>
+              <p id="cardStory"></p>
+            </div>
+            <div id="cardExtra"></div>
+          </div>
 
-    <div class="form" id="formBox">
-      <input id="nameInput" placeholder="Name" maxlength="100" value="Kai" oninput="renderCard()">
-      <input id="ageInput" placeholder="Age" maxlength="50" value="24" oninput="renderCard()">
-      <input id="genderInput" placeholder="Gender" maxlength="50" value="Male" oninput="renderCard()">
-      <textarea id="storyInput" placeholder="Backstory" rows="4" maxlength="5000" oninput="renderCard()">A wandering knight.</textarea>
+          <div class="panel" id="viewerBox" style="display: none;">
+            <div class="actions">
+              <button onclick="downloadCard()">Download card as image</button>
+            </div>
+            <p><a href="./" style="color: #9d97ff;">Make your own card</a></p>
+          </div>
+        </div>
 
-      <h4>Extra fields</h4>
-      <div id="extraFields"></div>
-      <button onclick="addExtraRow('', '')">+ Custom field</button>
-      <button onclick="addExtraRow('Personality', '')">+ Personality</button>
-      <button onclick="addExtraRow('Appearance', '')">+ Appearance</button>
-      <button onclick="addExtraRow('Species', '')">+ Species</button>
-      <button onclick="addExtraRow('Abilities', '')">+ Abilities</button>
-      <button onclick="addExtraRow('Relationships', '')">+ Relationships</button>
+        <div class="editorCol">
+          <div class="panel" id="formBox">
+            <h3>Character</h3>
+            <input id="nameInput" placeholder="Name" maxlength="100" value="Kai" oninput="renderCard()">
+            <input id="ageInput" placeholder="Age" maxlength="50" value="24" oninput="renderCard()">
+            <input id="genderInput" placeholder="Gender" maxlength="50" value="Male" oninput="renderCard()">
+            <textarea id="storyInput" placeholder="Backstory" rows="4" maxlength="5000" oninput="renderCard()">A wandering knight.</textarea>
 
-      <h4>Picture</h4>
-      <input id="imageInput" type="file" accept="image/*" onchange="pickImage()">
+            <h4>Card style</h4>
+            <select id="templateInput" onchange="renderCard()">
+              <option value="modern">Modern</option>
+              <option value="fantasy">Fantasy</option>
+              <option value="dark">Dark</option>
+            </select>
 
-      <button onclick="saveCharacter()">Save character</button>
-      <button onclick="downloadCard()">Download card as image</button>
-      <button onclick="newCharacter()">New character</button>
-      <p id="status"></p>
-      <input id="shareLink" readonly placeholder="Your share link appears here">
-      <button onclick="copyLink()">Copy link</button>
-    </div>
+            <h4>Extra fields</h4>
+            <div id="extraFields"></div>
+            <div class="actions">
+              <button class="secondary" onclick="addExtraRow('', '')">+ Custom field</button>
+              <button class="secondary" onclick="addExtraRow('Personality', '')">+ Personality</button>
+              <button class="secondary" onclick="addExtraRow('Appearance', '')">+ Appearance</button>
+              <button class="secondary" onclick="addExtraRow('Species', '')">+ Species</button>
+              <button class="secondary" onclick="addExtraRow('Abilities', '')">+ Abilities</button>
+              <button class="secondary" onclick="addExtraRow('Relationships', '')">+ Relationships</button>
+            </div>
 
-    <div class="form" id="myBox" style="display: none;">
-      <h3>My characters</h3>
-      <div id="myList"></div>
-    </div>
+            <h4>Picture</h4>
+            <input id="imageInput" type="file" accept="image/*" onchange="pickImage()">
 
-    <div class="form" id="viewerBox" style="display: none;">
-      <button onclick="downloadCard()">Download card as image</button>
-      <p><a href="./">Make your own card</a></p>
+            <div class="actions">
+              <button onclick="saveCharacter()">Save character</button>
+              <button class="secondary" onclick="downloadCard()">Download card as image</button>
+              <button class="secondary" onclick="newCharacter()">New character</button>
+            </div>
+            <p id="status"></p>
+            <input id="shareLink" readonly placeholder="Your share link appears here">
+            <button class="secondary" onclick="copyLink()">Copy link</button>
+          </div>
+
+          <div class="panel" id="myBox" style="display: none;">
+            <h3>My characters</h3>
+            <div id="myList"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -116,6 +327,7 @@
       const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
       const BUCKET = "character-images";
+      const TEMPLATES = ["modern", "fantasy", "dark"];
       const MAX_FIELDS = 20;
       const MAX_LABEL = 40;
       const MAX_VALUE = 2000;
@@ -125,6 +337,10 @@
       let editingId = null;
       let pendingImageBlob = null;
       let currentImageUrl = null;
+
+      if (isViewer) {
+        document.body.classList.add("viewer");
+      }
 
       // ---------- Login ----------
 
@@ -207,6 +423,7 @@
         valueInput.oninput = renderCard;
 
         const removeBtn = document.createElement("button");
+        removeBtn.className = "danger";
         removeBtn.textContent = "Remove field";
         removeBtn.onclick = function () {
           row.remove();
@@ -249,12 +466,18 @@
 
       // ---------- Drawing the card ----------
 
+      function getTemplate() {
+        const value = document.getElementById("templateInput").value;
+        return TEMPLATES.includes(value) ? value : "modern";
+      }
+
       function renderCard() {
         const name = document.getElementById("nameInput").value.trim();
         const age = document.getElementById("ageInput").value.trim();
         const gender = document.getElementById("genderInput").value.trim();
         const story = document.getElementById("storyInput").value.trim();
 
+        document.getElementById("card").className = "card tpl-" + getTemplate();
         document.getElementById("cardName").textContent = name || "Character name";
         document.getElementById("cardAge").textContent = age || "?";
         document.getElementById("cardGender").textContent = gender || "?";
@@ -265,9 +488,10 @@
 
         getExtraFields().forEach(function (field) {
           const wrapper = document.createElement("div");
-          wrapper.className = "extra";
+          wrapper.className = "section";
 
-          const title = document.createElement("strong");
+          const title = document.createElement("span");
+          title.className = "label";
           title.textContent = field.label;
 
           const body = document.createElement("p");
@@ -284,6 +508,8 @@
         document.getElementById("ageInput").value = data.age || "";
         document.getElementById("genderInput").value = data.gender || "";
         document.getElementById("storyInput").value = data.backstory || "";
+        document.getElementById("templateInput").value =
+          TEMPLATES.includes(data.template) ? data.template : "modern";
         setExtraFields(data.extra);
         renderCard();
       }
@@ -386,6 +612,7 @@
         document.getElementById("ageInput").value = "";
         document.getElementById("genderInput").value = "";
         document.getElementById("storyInput").value = "";
+        document.getElementById("templateInput").value = "modern";
         document.getElementById("extraFields").textContent = "";
         document.getElementById("shareLink").value = "";
         document.getElementById("status").textContent = "";
@@ -425,6 +652,7 @@
           age: document.getElementById("ageInput").value.trim(),
           gender: document.getElementById("genderInput").value.trim(),
           backstory: document.getElementById("storyInput").value.trim(),
+          template: getTemplate(),
           extra: getExtraFields()
         };
 
@@ -522,23 +750,29 @@
           row.className = "row";
 
           const nameSpan = document.createElement("span");
-          nameSpan.textContent = character.name + " ";
+          nameSpan.textContent = character.name;
+
+          const buttons = document.createElement("div");
 
           const editBtn = document.createElement("button");
+          editBtn.className = "secondary";
           editBtn.textContent = "Edit";
           editBtn.onclick = function () {
             editCharacter(character.id);
           };
 
           const deleteBtn = document.createElement("button");
+          deleteBtn.className = "danger";
           deleteBtn.textContent = "Delete";
           deleteBtn.onclick = function () {
             deleteCharacter(character.id);
           };
 
+          buttons.appendChild(editBtn);
+          buttons.appendChild(document.createTextNode(" "));
+          buttons.appendChild(deleteBtn);
           row.appendChild(nameSpan);
-          row.appendChild(editBtn);
-          row.appendChild(deleteBtn);
+          row.appendChild(buttons);
           list.appendChild(row);
         });
       }
@@ -606,7 +840,6 @@
         }
 
         document.getElementById("authBox").style.display = "none";
-        document.getElementById("formBox").style.display = "none";
         document.getElementById("viewerBox").style.display = "block";
         showImage(null);
         document.getElementById("cardName").textContent = "Loading...";
