@@ -32,6 +32,54 @@
         margin: 0;
       }
 
+
+      /* ----- Login page ----- */
+      .screen {
+        display: none;
+      }
+      .screen.active {
+        display: block;
+      }
+      #loginPage.active {
+        display: flex;
+        min-height: 100vh;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+      }
+      .loginBox {
+        width: 100%;
+        max-width: 400px;
+        text-align: center;
+        background-color: #1e1e2e;
+        border: 1px solid #32324a;
+        border-radius: 16px;
+        padding: 32px 24px;
+      }
+      .loginBox h1 {
+        margin: 0 0 8px 0;
+        font-size: 30px;
+      }
+      .loginBox p {
+        margin: 0 0 24px 0;
+        opacity: 0.8;
+      }
+      .loginBox button {
+        width: 100%;
+        padding: 14px;
+        font-size: 17px;
+      }
+      #loginError {
+        min-height: 1.4em;
+        margin: 12px 0 0 0;
+        color: #ff8a8a;
+      }
+      #loadingScreen {
+        text-align: center;
+        padding: 40vh 16px 0 16px;
+        opacity: 0.7;
+      }
+
       /* ----- Layout ----- */
       .layout {
         display: grid;
@@ -233,7 +281,18 @@
     </style>
   </head>
   <body>
-    <div class="page">
+    <div id="loadingScreen" class="screen active">Loading...</div>
+
+    <div id="loginPage" class="screen">
+      <div class="loginBox">
+        <h1>Character Cards</h1>
+        <p>Make a profile card for your roleplay character, save it, and share it with a link.</p>
+        <button onclick="loginWithDiscord()">Log in with Discord</button>
+        <p id="loginError"></p>
+      </div>
+    </div>
+
+    <div class="page screen" id="app">
       <div class="topbar" id="authBox">
         <p id="userInfo">Not logged in</p>
         <div>
@@ -343,6 +402,26 @@
         document.body.classList.add("viewer");
       }
 
+      // ---------- Screens ----------
+
+      function showScreen(name) {
+        ["loadingScreen", "loginPage", "app"].forEach(function (id) {
+          document.getElementById(id).classList.toggle("active", id === name);
+        });
+      }
+
+      // Shared links go straight to the card; everyone else sees login first.
+      if (isViewer) {
+        showScreen("app");
+      } else {
+        // If login never answers, show the login page anyway.
+        setTimeout(function () {
+          if (document.getElementById("loadingScreen").classList.contains("active")) {
+            showScreen("loginPage");
+          }
+        }, 4000);
+      }
+
       // ---------- Login ----------
 
       async function loginWithDiscord() {
@@ -353,7 +432,7 @@
           }
         });
         if (error) {
-          document.getElementById("status").textContent = "Login failed: " + error.message;
+          document.getElementById("loginError").textContent = "Login failed: " + error.message;
         }
       }
 
@@ -366,6 +445,8 @@
         if (isViewer) {
           return;
         }
+
+        showScreen(user ? "app" : "loginPage");
 
         const info = document.getElementById("userInfo");
         const loginBtn = document.getElementById("loginBtn");
