@@ -29,9 +29,18 @@
         display: block;
         margin-bottom: 10px;
       }
+      .row {
+        margin-bottom: 8px;
+      }
     </style>
   </head>
   <body>
+    <div class="form" id="authBox">
+      <p id="userInfo">Not logged in</p>
+      <button id="loginBtn" onclick="loginWithDiscord()">Log in with Discord</button>
+      <button id="logoutBtn" onclick="logout()" style="display: none;">Log out</button>
+    </div>
+
     <div class="card" id="card">
       <img id="cardImage" src="kai.jpg" alt="Character picture">
       <h1 id="cardName">Kai</h1>
@@ -48,10 +57,16 @@
       <input id="imageInput" type="file" accept="image/*">
       <button onclick="updateCard()">Update card</button>
       <button onclick="downloadCard()">Download card as image</button>
-      <button onclick="saveCharacter()">Save and get link</button>
+      <button onclick="saveCharacter()">Save character</button>
+      <button onclick="newCharacter()">New character</button>
       <p id="status"></p>
       <input id="shareLink" readonly placeholder="Your share link appears here">
       <button onclick="copyLink()">Copy link</button>
+    </div>
+
+    <div class="form" id="myBox" style="display: none;">
+      <h3>My characters</h3>
+      <div id="myList"></div>
     </div>
 
     <div class="form" id="viewerBox" style="display: none;">
@@ -65,6 +80,63 @@
       const SUPABASE_URL = "https://zztddikhhoiiquygszmu.supabase.co";
       const SUPABASE_KEY = "sb_publishable_4voRPIIlS73ex4K8woa0ow_Nbzwbxq7";
       const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+      const isViewer = new URLSearchParams(window.location.search).has("id");
+      let currentUser = null;
+      let editingId = null;
+
+      // ---------- Login ----------
+
+      async function loginWithDiscord() {
+        const { error } = await db.auth.signInWithOAuth({
+          provider: "discord",
+          options: {
+            redirectTo: window.location.origin + window.location.pathname
+          }
+        });
+        if (error) {
+          document.getElementById("status").textContent = "Login failed: " + error.message;
+        }
+      }
+
+      async function logout() {
+        await db.auth.signOut();
+      }
+
+      function showUser(user) {
+        currentUser = user;
+        if (isViewer) {
+          return;
+        }
+
+        const info = document.getElementById("userInfo");
+        const loginBtn = document.getElementById("loginBtn");
+        const logoutBtn = document.getElementById("logoutBtn");
+        const myBox = document.getElementById("myBox");
+
+        if (user) {
+          const meta = user.user_metadata || {};
+          info.textContent = "Logged in as " + (meta.full_name || meta.name || "Discord user");
+          loginBtn.style.display = "none";
+          logoutBtn.style.display = "";
+          myBox.style.display = "block";
+          loadMyCharacters();
+        } else {
+          info.textContent = "Not logged in";
+          loginBtn.style.display = "";
+          logoutBtn.style.display = "none";
+          myBox.style.display = "none";
+          editingId = null;
+        }
+      }
+
+      db.auth.onAuthStateChange(function (event, session) {
+        setTimeout(function () {
+          showUser(session ? session.user : null);
+        }, 0);
+      });
+
+      // ---------- Card editing ----------
 
       function setText(cardId, inputId) {
         const value = document.getElementById(inputId).value;
@@ -98,29 +170,65 @@
         });
       }
 
+      function newCharacter() {
+        editingId = null;
+        document.getElementById("cardName").textContent = "Character name";
+        document.getElementById("cardAge").textContent = "?";
+        document.getElementById("cardGender").textContent = "?";
+        document.getElementById("cardStory").textContent = "Write a backstory.";
+        document.getElementById("nameInput").value = "";
+        document.getElementById("ageInput").value = "";
+        document.getElementById("genderInput").value = "";
+        document.getElementById("storyInput").value = "";
+        document.getElementById("shareLink").value = "";
+        document.getElementById("status").textContent = "";
+      }
+
+      // ---------- Saving ----------
+
       async function saveCharacter() {
         const status = document.getElementById("status");
-        status.textContent = "Saving...";
 
-        const { data, error } = await db
-          .from("characters")
-          .insert({
-            name: document.getElementById("cardName").textContent,
-            age: document.getElementById("cardAge").textContent,
-            gender: document.getElementById("cardGender").textContent,
-            backstory: document.getElementById("cardStory").textContent
-          })
-          .select()
-          .single();
-
-        if (error) {
-          status.textContent = "Could not save: " + error.message;
+        if (!currentUser) {
+          status.textContent = "Please log in with Discord first.";
           return;
         }
 
-        const link = window.location.origin + window.location.pathname + "?id=" + data.id;
+        status.textContent = "Saving...";
+
+        const fields = {
+          name: document.getElementById("cardName").textContent,
+          age: document.getElementById("cardAge").textContent,
+          gender: document.getElementById("cardGender").textContent,
+          backstory: document.getElementById("cardStory").textContent
+        };
+
+        let result;
+        if (editingId) {
+          result = await db
+            .from("characters")
+            .update(fields)
+            .eq("id", editingId)
+            .select()
+            .single();
+        } else {
+          result = await db
+            .from("characters")
+            .insert(fields)
+            .select()
+            .single();
+        }
+
+        if (result.error) {
+          status.textContent = "Could not save: " + result.error.message;
+          return;
+        }
+
+        editingId = result.data.id;
+        const link = window.location.origin + window.location.pathname + "?id=" + result.data.id;
         document.getElementById("shareLink").value = link;
         status.textContent = "Saved!";
+        loadMyCharacters();
       }
 
       function copyLink() {
@@ -131,12 +239,110 @@
         }
       }
 
+      // ---------- My characters ----------
+
+      async function loadMyCharacters() {
+        if (!currentUser) {
+          return;
+        }
+
+        const list = document.getElementById("myList");
+        const { data, error } = await db
+          .from("characters")
+          .select("id, name")
+          .eq("owner_id", currentUser.id)
+          .order("created_at", { ascending: false });
+
+        list.textContent = "";
+
+        if (error) {
+          list.textContent = "Could not load: " + error.message;
+          return;
+        }
+
+        if (!data || data.length === 0) {
+          list.textContent = "No characters yet.";
+          return;
+        }
+
+        data.forEach(function (character) {
+          const row = document.createElement("div");
+          row.className = "row";
+
+          const nameSpan = document.createElement("span");
+          nameSpan.textContent = character.name + " ";
+
+          const editBtn = document.createElement("button");
+          editBtn.textContent = "Edit";
+          editBtn.onclick = function () {
+            editCharacter(character.id);
+          };
+
+          const deleteBtn = document.createElement("button");
+          deleteBtn.textContent = "Delete";
+          deleteBtn.onclick = function () {
+            deleteCharacter(character.id);
+          };
+
+          row.appendChild(nameSpan);
+          row.appendChild(editBtn);
+          row.appendChild(deleteBtn);
+          list.appendChild(row);
+        });
+      }
+
+      async function editCharacter(id) {
+        const { data, error } = await db
+          .from("characters")
+          .select("*")
+          .eq("id", id)
+          .single();
+
+        if (error || !data) {
+          document.getElementById("status").textContent = "Could not load that character.";
+          return;
+        }
+
+        editingId = data.id;
+        document.getElementById("cardName").textContent = data.name;
+        document.getElementById("cardAge").textContent = data.age;
+        document.getElementById("cardGender").textContent = data.gender;
+        document.getElementById("cardStory").textContent = data.backstory;
+        document.getElementById("shareLink").value =
+          window.location.origin + window.location.pathname + "?id=" + data.id;
+        document.getElementById("status").textContent = "Editing " + data.name;
+      }
+
+      async function deleteCharacter(id) {
+        if (!confirm("Delete this character? This can't be undone.")) {
+          return;
+        }
+
+        const { error } = await db
+          .from("characters")
+          .delete()
+          .eq("id", id);
+
+        if (error) {
+          document.getElementById("status").textContent = "Could not delete: " + error.message;
+          return;
+        }
+
+        if (editingId === id) {
+          newCharacter();
+        }
+        loadMyCharacters();
+      }
+
+      // ---------- Viewing a shared link ----------
+
       async function loadCharacter() {
         const id = new URLSearchParams(window.location.search).get("id");
         if (!id) {
           return;
         }
 
+        document.getElementById("authBox").style.display = "none";
         document.getElementById("formBox").style.display = "none";
         document.getElementById("viewerBox").style.display = "block";
         document.getElementById("cardName").textContent = "Loading...";
