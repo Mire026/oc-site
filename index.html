@@ -40,7 +40,7 @@
       <p>Backstory: <span id="cardStory">A wandering knight.</span></p>
     </div>
 
-    <div class="form">
+    <div class="form" id="formBox">
       <input id="nameInput" placeholder="Name">
       <input id="ageInput" placeholder="Age">
       <input id="genderInput" placeholder="Gender">
@@ -48,10 +48,24 @@
       <input id="imageInput" type="file" accept="image/*">
       <button onclick="updateCard()">Update card</button>
       <button onclick="downloadCard()">Download card as image</button>
+      <button onclick="saveCharacter()">Save and get link</button>
+      <p id="status"></p>
+      <input id="shareLink" readonly placeholder="Your share link appears here">
+      <button onclick="copyLink()">Copy link</button>
     </div>
 
+    <div class="form" id="viewerBox" style="display: none;">
+      <button onclick="downloadCard()">Download card as image</button>
+      <p><a href="./">Make your own card</a></p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
+      const SUPABASE_URL = "PASTE_YOUR_PROJECT_URL_HERE";
+      const SUPABASE_KEY = "PASTE_YOUR_PUBLIC_KEY_HERE";
+      const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
       function setText(cardId, inputId) {
         const value = document.getElementById(inputId).value;
         if (value !== "") {
@@ -83,6 +97,71 @@
           link.click();
         });
       }
+
+      async function saveCharacter() {
+        const status = document.getElementById("status");
+        status.textContent = "Saving...";
+
+        const { data, error } = await db
+          .from("characters")
+          .insert({
+            name: document.getElementById("cardName").textContent,
+            age: document.getElementById("cardAge").textContent,
+            gender: document.getElementById("cardGender").textContent,
+            backstory: document.getElementById("cardStory").textContent
+          })
+          .select()
+          .single();
+
+        if (error) {
+          status.textContent = "Could not save: " + error.message;
+          return;
+        }
+
+        const link = window.location.origin + window.location.pathname + "?id=" + data.id;
+        document.getElementById("shareLink").value = link;
+        status.textContent = "Saved!";
+      }
+
+      function copyLink() {
+        const link = document.getElementById("shareLink").value;
+        if (link !== "") {
+          navigator.clipboard.writeText(link);
+          document.getElementById("status").textContent = "Link copied!";
+        }
+      }
+
+      async function loadCharacter() {
+        const id = new URLSearchParams(window.location.search).get("id");
+        if (!id) {
+          return;
+        }
+
+        document.getElementById("formBox").style.display = "none";
+        document.getElementById("viewerBox").style.display = "block";
+        document.getElementById("cardName").textContent = "Loading...";
+        document.getElementById("cardAge").textContent = "";
+        document.getElementById("cardGender").textContent = "";
+        document.getElementById("cardStory").textContent = "";
+
+        const { data, error } = await db
+          .from("characters")
+          .select("*")
+          .eq("id", id)
+          .single();
+
+        if (error || !data) {
+          document.getElementById("cardName").textContent = "Character not found";
+          return;
+        }
+
+        document.getElementById("cardName").textContent = data.name;
+        document.getElementById("cardAge").textContent = data.age;
+        document.getElementById("cardGender").textContent = data.gender;
+        document.getElementById("cardStory").textContent = data.backstory;
+      }
+
+      loadCharacter();
     </script>
   </body>
 </html>
