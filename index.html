@@ -497,6 +497,48 @@
         white-space: nowrap;
       }
 
+      /* ----- Report window ----- */
+      .modalBack {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 110;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        background-color: rgba(0, 0, 0, 0.7);
+      }
+      .modalBack.open {
+        display: flex;
+      }
+      .modal {
+        width: 100%;
+        max-width: 420px;
+        padding: 20px;
+        background-color: #1e1e2e;
+        border: 1px solid #32324a;
+        border-radius: 14px;
+      }
+      .modal h3 {
+        margin: 0 0 8px 0;
+      }
+      .modal select,
+      .modal textarea {
+        display: block;
+        width: 100%;
+        margin-bottom: 12px;
+        padding: 10px;
+        font-family: inherit;
+        font-size: 16px;
+        color: #f0f0f8;
+        background-color: #2a2a3c;
+        border: 1px solid #3a3a52;
+        border-radius: 8px;
+      }
+
       /* ----- Layout ----- */
       .layout {
         display: grid;
@@ -969,6 +1011,9 @@
       <p class="hint">Characters that people have chosen to share.</p>
       <div class="discoverControls">
         <input id="discoverSearch" placeholder="Search by name" maxlength="50" oninput="discoverSearchChanged()">
+        <button class="secondary" id="discoverClear" style="display: none;" onclick="clearDiscoverFilters()">Clear filters</button>
+      </div>
+      <div class="discoverControls">
         <select id="discoverStyle" onchange="loadDiscover(true)">
           <option value="">All styles</option>
           <option value="modern">Modern</option>
@@ -978,6 +1023,8 @@
           <option value="cute">Cute</option>
           <option value="noir">Noir</option>
         </select>
+        <select id="discoverGender" onchange="loadDiscover(true)"></select>
+        <select id="discoverOrientation" onchange="loadDiscover(true)"></select>
       </div>
       <div class="tileGrid" id="discoverGrid"></div>
       <p class="hint" id="discoverStatus"></p>
@@ -1027,6 +1074,10 @@
                 <span class="value" id="cardGender"></span>
               </div>
               <div class="stat">
+                <span class="label">Orientation</span>
+                <span class="value" id="cardOrientation"></span>
+              </div>
+              <div class="stat">
                 <span class="label">Pronouns</span>
                 <span class="value" id="cardPronouns"></span>
               </div>
@@ -1043,6 +1094,7 @@
               <button onclick="downloadCard()">Download card as image</button>
             </div>
             <p><a href="./" style="color: #9d97ff;">Discover more characters</a></p>
+            <p><a href="#" onclick="openReport(); return false;" style="color: #b8b8cc;">Report this character</a></p>
             <p id="moreLink" style="display: none;"><a href="./" style="color: #9d97ff;">More characters by this creator</a></p>
           </div>
         </div>
@@ -1057,7 +1109,8 @@
             </div>
             <input id="pronounsInput" placeholder="Pronouns (for example: he/him)" maxlength="50" oninput="renderCard()">
             <input id="ageInput" placeholder="Age (for example: 24)" maxlength="50" oninput="renderCard()">
-            <input id="genderInput" placeholder="Gender" maxlength="50" oninput="renderCard()">
+            <select id="genderInput" onchange="renderCard()"></select>
+            <select id="orientationInput" onchange="renderCard()"></select>
             <textarea id="storyInput" placeholder="Backstory: who is your character?" rows="4" maxlength="5000" oninput="renderCard()"></textarea>
 
             <h4>Card style</h4>
@@ -1128,6 +1181,36 @@
       </div>
     </div>
 
+    <div class="modalBack" id="reportModal" onclick="closeReport()">
+      <div class="modal" onclick="event.stopPropagation()">
+        <h3>Report this character</h3>
+        <div id="reportLoggedOut" style="display: none;">
+          <p>Please log in with Discord to send a report. This helps stop spam.</p>
+          <div class="actions">
+            <button onclick="loginToReport()">Log in with Discord</button>
+            <button class="secondary" onclick="closeReport()">Cancel</button>
+          </div>
+        </div>
+        <div id="reportForm">
+          <p class="hint">Tell me what is wrong. The site owner will take a look.</p>
+          <select id="reportReason">
+            <option value="">Choose a reason...</option>
+            <option value="Sexual or adult content">Sexual or adult content</option>
+            <option value="Harassment or hate">Harassment or hate</option>
+            <option value="Uses someone else's work without permission">Uses someone else's work without permission</option>
+            <option value="Spam or advertising">Spam or advertising</option>
+            <option value="Something else">Something else</option>
+          </select>
+          <textarea id="reportDetails" rows="3" maxlength="500" placeholder="Anything else I should know? (optional)"></textarea>
+          <div class="actions">
+            <button id="reportSend" onclick="submitReport()">Send report</button>
+            <button class="secondary" onclick="closeReport()">Cancel</button>
+          </div>
+          <p id="reportStatus"></p>
+        </div>
+      </div>
+    </div>
+
     <div class="lightbox" id="lightbox" onclick="closeLightbox()">
       <button class="lbNav lbPrev" id="lbPrev" onclick="lightboxStep(-1, event)">&#8249;</button>
       <img id="lightboxImg" alt="">
@@ -1150,6 +1233,11 @@
       const MAX_VALUE = 2000;
 
       const SCREENS = ["loadingScreen", "loginPage", "profilePage", "discoverPage", "app"];
+      const GENDER_OPTIONS = ["Male", "Female", "Non-binary", "Genderfluid", "Agender", "Other"];
+      const ORIENTATION_OPTIONS = [
+        "Straight", "Gay", "Lesbian", "Bisexual", "Pansexual",
+        "Asexual", "Demisexual", "Queer", "Questioning", "Other"
+      ];
       const FILE_FORMAT = "oc-character-card";
       const TEMPLATE_COLORS = {
         modern: "#4c6ef5",
@@ -1168,6 +1256,7 @@
       let pendingImageBlob = null;
       let currentImageUrl = null;
       let savedSnapshot = "";
+      let viewerOwnerId = null;
       let mainImageUrl = null;
       let gallery = [];
       let savedGalleryUrls = [];
@@ -1292,6 +1381,11 @@
             sessionStorage.removeItem("afterLogin");
           } catch (err) {
             // ignore
+          }
+          if (user && intent.indexOf("return:") === 0) {
+            // Came back from logging in to send a report: go back to that character.
+            window.location.replace(window.location.pathname + "?id=" + encodeURIComponent(intent.slice(7)));
+            return;
           }
           if (user && intent === "create") {
             showScreen("app");
@@ -1476,6 +1570,7 @@
           pronouns: document.getElementById("pronounsInput").value,
           age: document.getElementById("ageInput").value,
           gender: document.getElementById("genderInput").value,
+          orientation: document.getElementById("orientationInput").value,
           story: document.getElementById("storyInput").value,
           template: getTemplate(),
           extra: getExtraFields(),
@@ -1500,6 +1595,43 @@
           event.returnValue = "";
         }
       });
+
+      function fillSelect(select, options, emptyLabel) {
+        select.textContent = "";
+        const empty = document.createElement("option");
+        empty.value = "";
+        empty.textContent = emptyLabel;
+        select.appendChild(empty);
+        options.forEach(function (name) {
+          const option = document.createElement("option");
+          option.value = name;
+          option.textContent = name;
+          select.appendChild(option);
+        });
+      }
+
+      function setupDropdowns() {
+        fillSelect(document.getElementById("genderInput"), GENDER_OPTIONS, "Gender (optional)");
+        fillSelect(document.getElementById("orientationInput"), ORIENTATION_OPTIONS, "Sexual orientation (optional)");
+        fillSelect(document.getElementById("discoverGender"), GENDER_OPTIONS, "All genders");
+        fillSelect(document.getElementById("discoverOrientation"), ORIENTATION_OPTIONS, "All orientations");
+      }
+
+      // Older characters may have a gender typed in by hand. Keep it as an extra choice so nothing is lost.
+      function setSelectValue(select, value) {
+        select.querySelectorAll("option.legacy").forEach(function (option) {
+          option.remove();
+        });
+        const wanted = typeof value === "string" ? value : "";
+        if (wanted !== "" && !Array.from(select.options).some(function (o) { return o.value === wanted; })) {
+          const option = document.createElement("option");
+          option.className = "legacy";
+          option.value = wanted;
+          option.textContent = wanted;
+          select.appendChild(option);
+        }
+        select.value = wanted;
+      }
 
       function setTemplate(name) {
         document.getElementById("templateInput").value = name;
@@ -1655,6 +1787,7 @@
         const name = getFullName();
         const age = document.getElementById("ageInput").value.trim();
         const gender = document.getElementById("genderInput").value.trim();
+        const orientation = document.getElementById("orientationInput").value.trim();
         const pronouns = document.getElementById("pronounsInput").value.trim();
         const story = document.getElementById("storyInput").value.trim();
 
@@ -1680,6 +1813,7 @@
         document.getElementById("cardName").textContent = name || "Character name";
         document.getElementById("cardAge").textContent = age || "?";
         document.getElementById("cardGender").textContent = gender || "?";
+        document.getElementById("cardOrientation").textContent = orientation || "?";
         document.getElementById("cardPronouns").textContent = pronouns || "?";
         document.getElementById("cardStory").textContent = story || "No backstory yet.";
 
@@ -1711,7 +1845,8 @@
         document.getElementById("lastNameInput").value = hasParts ? (data.last_name || "") : "";
         document.getElementById("pronounsInput").value = data.pronouns || "";
         document.getElementById("ageInput").value = data.age || "";
-        document.getElementById("genderInput").value = data.gender || "";
+        setSelectValue(document.getElementById("genderInput"), data.gender || "");
+        setSelectValue(document.getElementById("orientationInput"), data.orientation || "");
         document.getElementById("storyInput").value = data.backstory || "";
         document.getElementById("templateInput").value =
           TEMPLATES.includes(data.template) ? data.template : "modern";
@@ -1959,6 +2094,7 @@
             pronouns: document.getElementById("pronounsInput").value.trim(),
             age: document.getElementById("ageInput").value.trim(),
             gender: document.getElementById("genderInput").value.trim(),
+            orientation: document.getElementById("orientationInput").value.trim(),
             backstory: document.getElementById("storyInput").value.trim(),
             template: getTemplate(),
             extra: getExtraFields()
@@ -2022,6 +2158,7 @@
           pronouns: text(c.pronouns, 50),
           age: text(c.age, 50),
           gender: text(c.gender, 50),
+          orientation: text(c.orientation, 50),
           backstory: text(c.backstory, 5000),
           template: TEMPLATES.includes(c.template) ? c.template : "modern",
           extra: [],
@@ -2111,7 +2248,8 @@
         document.getElementById("lastNameInput").value = "";
         document.getElementById("pronounsInput").value = "";
         document.getElementById("ageInput").value = "";
-        document.getElementById("genderInput").value = "";
+        setSelectValue(document.getElementById("genderInput"), "");
+        setSelectValue(document.getElementById("orientationInput"), "");
         document.getElementById("storyInput").value = "";
         document.getElementById("templateInput").value = "modern";
         document.getElementById("extraFields").textContent = "";
@@ -2164,6 +2302,7 @@
           pronouns: document.getElementById("pronounsInput").value.trim(),
           age: document.getElementById("ageInput").value.trim(),
           gender: document.getElementById("genderInput").value.trim(),
+          orientation: document.getElementById("orientationInput").value.trim(),
           backstory: document.getElementById("storyInput").value.trim(),
           template: getTemplate(),
           extra: getExtraFields(),
@@ -2439,6 +2578,7 @@
         document.getElementById("cardName").textContent = "Loading...";
         document.getElementById("cardAge").textContent = "";
         document.getElementById("cardGender").textContent = "";
+        document.getElementById("cardOrientation").textContent = "";
         document.getElementById("cardPronouns").textContent = "";
         document.getElementById("cardStory").textContent = "";
         document.getElementById("cardExtra").textContent = "";
@@ -2456,6 +2596,7 @@
 
         showImage(data.image_url);
         fillForm(data);
+        viewerOwnerId = data.owner_id || null;
 
         if (data.show_on_profile === true && data.owner_id) {
           const more = document.getElementById("moreLink");
@@ -2464,12 +2605,84 @@
         }
       }
 
+      // ---------- Reports ----------
+
+      function openReport() {
+        const modal = document.getElementById("reportModal");
+        document.getElementById("reportStatus").textContent = "";
+        document.getElementById("reportSend").disabled = false;
+        document.getElementById("reportSend").textContent = "Send report";
+        document.getElementById("reportReason").value = "";
+        document.getElementById("reportDetails").value = "";
+        document.getElementById("reportLoggedOut").style.display = currentUser ? "none" : "";
+        document.getElementById("reportForm").style.display = currentUser ? "" : "none";
+        modal.classList.add("open");
+      }
+
+      function closeReport() {
+        document.getElementById("reportModal").classList.remove("open");
+      }
+
+      function loginToReport() {
+        loginWithDiscord("return:" + pageParams.get("id"));
+      }
+
+      async function submitReport() {
+        const status = document.getElementById("reportStatus");
+        const sendBtn = document.getElementById("reportSend");
+        const reason = document.getElementById("reportReason").value;
+
+        if (!currentUser) {
+          status.textContent = "Please log in first.";
+          return;
+        }
+        if (viewerOwnerId && viewerOwnerId === currentUser.id) {
+          status.textContent = "This is your own character, so there is nothing to report.";
+          return;
+        }
+        if (reason === "") {
+          status.textContent = "Please choose a reason.";
+          return;
+        }
+
+        sendBtn.disabled = true;
+        status.textContent = "Sending...";
+        const details = document.getElementById("reportDetails").value.trim().slice(0, 500);
+
+        const result = await db.from("reports").insert({
+          character_id: pageParams.get("id"),
+          reporter_id: currentUser.id,
+          reason: reason,
+          details: details === "" ? null : details
+        });
+
+        if (result.error) {
+          if (result.error.code === "23505") {
+            status.textContent = "You have already reported this character. Thank you.";
+          } else {
+            status.textContent = "Could not send the report: " + result.error.message;
+            sendBtn.disabled = false;
+          }
+          return;
+        }
+        status.textContent = "Thank you. Your report was sent.";
+        sendBtn.textContent = "Sent";
+      }
+
       // ---------- Discover ----------
 
       const DISCOVER_PAGE = 24;
       let discoverOffset = 0;
       let discoverToken = 0;
       let discoverTimer = null;
+
+      function clearDiscoverFilters() {
+        document.getElementById("discoverSearch").value = "";
+        document.getElementById("discoverStyle").value = "";
+        document.getElementById("discoverGender").value = "";
+        document.getElementById("discoverOrientation").value = "";
+        loadDiscover(true);
+      }
 
       function discoverSearchChanged() {
         clearTimeout(discoverTimer);
@@ -2552,6 +2765,12 @@
           grid.textContent = "";
         }
         const token = discoverToken;
+        const anyFilter =
+          document.getElementById("discoverSearch").value.trim() !== "" ||
+          document.getElementById("discoverStyle").value !== "" ||
+          document.getElementById("discoverGender").value !== "" ||
+          document.getElementById("discoverOrientation").value !== "";
+        document.getElementById("discoverClear").style.display = anyFilter ? "" : "none";
         status.textContent = "Loading...";
         moreBtn.style.display = "none";
 
@@ -2563,6 +2782,14 @@
         const style = document.getElementById("discoverStyle").value;
         if (TEMPLATES.includes(style)) {
           query = query.eq("template", style);
+        }
+        const genderFilter = document.getElementById("discoverGender").value;
+        if (genderFilter !== "") {
+          query = query.eq("gender", genderFilter);
+        }
+        const orientationFilter = document.getElementById("discoverOrientation").value;
+        if (orientationFilter !== "") {
+          query = query.eq("orientation", orientationFilter);
         }
         const term = document.getElementById("discoverSearch").value.replace(/[%_,()*\\]/g, " ").trim();
         if (term !== "") {
@@ -2601,8 +2828,8 @@
         discoverOffset += rows.length;
 
         if (grid.children.length === 0) {
-          status.textContent = term !== "" || style !== ""
-            ? "Nothing matches that search."
+          status.textContent = anyFilter
+            ? "Nothing matches those filters."
             : "No shared characters yet. Be the first: make one on the Create tab and tick \"Show this character on my public profile page\".";
         } else {
           status.textContent = "";
@@ -2702,6 +2929,7 @@
         });
       }
 
+      setupDropdowns();
       showImage(null);
       renderCard();
       savedSnapshot = getSnapshot();
