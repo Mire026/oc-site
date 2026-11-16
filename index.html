@@ -406,6 +406,97 @@
         opacity: 0.7;
       }
 
+      /* ----- Tabs and Discover ----- */
+      .headerPage {
+        padding-bottom: 0;
+      }
+      .headerPage .topbar {
+        margin-bottom: 8px;
+      }
+      .tabs {
+        display: flex;
+        gap: 6px;
+        border-bottom: 1px solid #32324a;
+      }
+      .tab {
+        padding: 10px 18px;
+        font-size: 16px;
+        color: #b8b8cc;
+        background-color: transparent;
+        border-radius: 8px 8px 0 0;
+        border-bottom: 3px solid transparent;
+      }
+      .tab.active {
+        color: #ffffff;
+        border-bottom-color: #6c63ff;
+      }
+      .discoverTitle {
+        margin: 8px 0 4px 0;
+        font-size: 22px;
+      }
+      .discoverControls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+      .discoverControls input,
+      .discoverControls select {
+        padding: 10px;
+        font-family: inherit;
+        font-size: 16px;
+        color: #f0f0f8;
+        background-color: #2a2a3c;
+        border: 1px solid #3a3a52;
+        border-radius: 8px;
+      }
+      .discoverControls input {
+        flex: 1;
+        min-width: 180px;
+      }
+      .tile {
+        display: flex;
+        flex-direction: column;
+      }
+      .tile > a:not(.creator) {
+        flex: 1;
+      }
+      .tile a {
+        display: block;
+        color: inherit;
+        text-decoration: none;
+      }
+      .tile .creator {
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        font-size: 14px;
+        color: #b8b8cc;
+        border-top: 1px solid #32324a;
+      }
+      .tile .creator img,
+      .tile .creator .dot {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        flex-shrink: 0;
+        aspect-ratio: auto;
+        border-radius: 50%;
+        background-color: #3a3a52;
+        font-size: 12px;
+        font-weight: bold;
+        color: #fff;
+      }
+      .tile .creator span.name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
       /* ----- Layout ----- */
       .layout {
         display: grid;
@@ -845,14 +936,63 @@
     </style>
   </head>
   <body>
+    <div class="page headerPage" id="authBox" style="display: none;">
+      <div class="topbar">
+        <h2 class="siteTitle">Character Cards</h2>
+        <div class="topRight">
+          <button id="newBtn" onclick="newCharacterButton()" style="display: none;">+ New<span class="wideOnly"> character</span></button>
+          <button id="headerLogin" onclick="loginWithDiscord('discover')" style="display: none;">Log in<span class="wideOnly"> with Discord</span></button>
+          <div class="profile" id="profileBox" style="display: none;">
+            <button class="avatarBtn" id="avatarBtn" onclick="toggleProfileMenu(event)" aria-label="Your profile">
+              <img id="avatarImg" alt="" style="display: none;">
+              <span id="avatarLetter">?</span>
+            </button>
+            <div class="profileMenu" id="profileMenu">
+              <p id="userInfo">Not logged in</p>
+              <button class="secondary" onclick="viewMyProfile()">My profile page</button>
+              <button class="secondary" id="copyProfileBtn" onclick="copyProfileLink()">Copy profile link</button>
+              <button class="secondary" onclick="logout()">Log out</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <nav class="tabs">
+        <button class="tab" id="tabDiscover" onclick="goDiscover()">Discover</button>
+        <button class="tab" id="tabCreate" onclick="goCreate()">Create</button>
+      </nav>
+    </div>
+
     <div id="loadingScreen" class="screen active">Loading...</div>
+
+    <div id="discoverPage" class="page screen">
+      <h3 class="discoverTitle">Discover</h3>
+      <p class="hint">Characters that people have chosen to share.</p>
+      <div class="discoverControls">
+        <input id="discoverSearch" placeholder="Search by name" maxlength="50" oninput="discoverSearchChanged()">
+        <select id="discoverStyle" onchange="loadDiscover(true)">
+          <option value="">All styles</option>
+          <option value="modern">Modern</option>
+          <option value="fantasy">Fantasy</option>
+          <option value="dark">Dark</option>
+          <option value="scifi">Sci-fi</option>
+          <option value="cute">Cute</option>
+          <option value="noir">Noir</option>
+        </select>
+      </div>
+      <div class="tileGrid" id="discoverGrid"></div>
+      <p class="hint" id="discoverStatus"></p>
+      <div class="actions" style="justify-content: center;">
+        <button class="secondary" id="discoverMore" style="display: none;" onclick="loadDiscover(false)">Load more</button>
+      </div>
+    </div>
 
     <div id="loginPage" class="screen">
       <div class="loginBox">
         <h1>Character Cards</h1>
         <p>Make a profile card for your roleplay character, save it, and share it with a link.</p>
-        <button onclick="loginWithDiscord()">Log in with Discord</button>
+        <button onclick="loginWithDiscord('create')">Log in with Discord</button>
         <p id="loginError"></p>
+        <p><a href="#" onclick="goDiscover(); return false;" style="color: #9d97ff;">Just browsing? See what others made</a></p>
       </div>
     </div>
 
@@ -866,30 +1006,11 @@
           </div>
         </div>
         <div class="tileGrid" id="profileGrid"></div>
-        <p><a href="./" style="color: #9d97ff;">Make your own cards</a></p>
+        <p><a href="./" style="color: #9d97ff;">Discover more characters</a></p>
       </div>
     </div>
 
     <div class="page screen" id="app">
-      <div class="topbar" id="authBox">
-        <h2 class="siteTitle">Character Cards</h2>
-        <div class="topRight">
-          <button onclick="newCharacterButton()">+ New<span class="wideOnly"> character</span></button>
-        <div class="profile">
-          <button class="avatarBtn" id="avatarBtn" onclick="toggleProfileMenu(event)" aria-label="Your profile">
-            <img id="avatarImg" alt="" style="display: none;">
-            <span id="avatarLetter">?</span>
-          </button>
-          <div class="profileMenu" id="profileMenu">
-            <p id="userInfo">Not logged in</p>
-            <button class="secondary" onclick="viewMyProfile()">My profile page</button>
-            <button class="secondary" id="copyProfileBtn" onclick="copyProfileLink()">Copy profile link</button>
-            <button class="secondary" onclick="logout()">Log out</button>
-          </div>
-        </div>
-        </div>
-      </div>
-
       <div class="layout">
         <div class="cardCol">
           <div class="card tpl-modern" id="card">
@@ -921,7 +1042,7 @@
             <div class="actions">
               <button onclick="downloadCard()">Download card as image</button>
             </div>
-            <p><a href="./" style="color: #9d97ff;">Make your own card</a></p>
+            <p><a href="./" style="color: #9d97ff;">Discover more characters</a></p>
             <p id="moreLink" style="display: none;"><a href="./" style="color: #9d97ff;">More characters by this creator</a></p>
           </div>
         </div>
@@ -1028,6 +1149,7 @@
       const MAX_LABEL = 40;
       const MAX_VALUE = 2000;
 
+      const SCREENS = ["loadingScreen", "loginPage", "profilePage", "discoverPage", "app"];
       const FILE_FORMAT = "oc-character-card";
       const TEMPLATE_COLORS = {
         modern: "#4c6ef5",
@@ -1060,9 +1182,37 @@
       // ---------- Screens ----------
 
       function showScreen(name) {
-        ["loadingScreen", "loginPage", "profilePage", "app"].forEach(function (id) {
+        SCREENS.forEach(function (id) {
           document.getElementById(id).classList.toggle("active", id === name);
         });
+
+        // The header with the tabs only belongs to Discover and Create (not shared links or profiles).
+        if (!isViewer && !isProfile) {
+          const showHeader = name === "discoverPage" || name === "app";
+          document.getElementById("authBox").style.display = showHeader ? "" : "none";
+          document.getElementById("tabDiscover").classList.toggle("active", name === "discoverPage");
+          document.getElementById("tabCreate").classList.toggle("active", name === "app");
+          document.getElementById("newBtn").style.display = name === "app" ? "" : "none";
+        }
+      }
+
+      function getActiveScreen() {
+        return SCREENS.find(function (id) {
+          return document.getElementById(id).classList.contains("active");
+        });
+      }
+
+      function goDiscover() {
+        showScreen("discoverPage");
+        loadDiscover(true);
+      }
+
+      function goCreate() {
+        if (!currentUser) {
+          showScreen("loginPage");
+          return;
+        }
+        showScreen("app");
       }
 
       // Shared links go straight to the card; everyone else sees login first.
@@ -1074,14 +1224,19 @@
         // If login never answers, show the login page anyway.
         setTimeout(function () {
           if (document.getElementById("loadingScreen").classList.contains("active")) {
-            showScreen("loginPage");
+            goDiscover();
           }
         }, 4000);
       }
 
       // ---------- Login ----------
 
-      async function loginWithDiscord() {
+      async function loginWithDiscord(intent) {
+        try {
+          sessionStorage.setItem("afterLogin", intent || "discover");
+        } catch (err) {
+          // Not important - you will simply land on Discover.
+        }
         const { error } = await db.auth.signInWithOAuth({
           provider: "discord",
           options: {
@@ -1100,16 +1255,18 @@
         await db.auth.signOut();
       }
 
+      let routed = false;
+
       function showUser(user) {
         currentUser = user;
         if (isViewer || isProfile) {
           return;
         }
 
-        showScreen(user ? "app" : "loginPage");
-
         const info = document.getElementById("userInfo");
         const myBox = document.getElementById("myBox");
+        document.getElementById("headerLogin").style.display = user ? "none" : "";
+        document.getElementById("profileBox").style.display = user ? "" : "none";
 
         if (user) {
           const meta = user.user_metadata || {};
@@ -1124,6 +1281,26 @@
           closeProfileMenu();
           myBox.style.display = "none";
           editingId = null;
+        }
+
+        if (!routed) {
+          // First answer from login: choose where to start.
+          routed = true;
+          let intent = "discover";
+          try {
+            intent = sessionStorage.getItem("afterLogin") || "discover";
+            sessionStorage.removeItem("afterLogin");
+          } catch (err) {
+            // ignore
+          }
+          if (user && intent === "create") {
+            showScreen("app");
+          } else {
+            goDiscover();
+          }
+        } else if (!user) {
+          // Logged out: back to Discover.
+          goDiscover();
         }
       }
 
@@ -2285,6 +2462,152 @@
           more.querySelector("a").href = "?user=" + encodeURIComponent(data.owner_id);
           more.style.display = "";
         }
+      }
+
+      // ---------- Discover ----------
+
+      const DISCOVER_PAGE = 24;
+      let discoverOffset = 0;
+      let discoverToken = 0;
+      let discoverTimer = null;
+
+      function discoverSearchChanged() {
+        clearTimeout(discoverTimer);
+        discoverTimer = setTimeout(function () {
+          loadDiscover(true);
+        }, 350);
+      }
+
+      function buildDiscoverTile(character, creator) {
+        const tile = document.createElement("div");
+        tile.className = "tile";
+        tile.style.borderTopColor = TEMPLATE_COLORS[character.template] || TEMPLATE_COLORS.modern;
+
+        const link = document.createElement("a");
+        link.href = "?id=" + encodeURIComponent(character.id);
+
+        const img = document.createElement("img");
+        img.alt = "";
+        img.loading = "lazy";
+        img.src = character.image_url || PLACEHOLDER_IMAGE;
+        img.onerror = function () {
+          img.src = PLACEHOLDER_IMAGE;
+        };
+
+        const text = document.createElement("div");
+        text.className = "tileText";
+        const name = document.createElement("div");
+        name.className = "tileName";
+        name.textContent = character.name;
+        text.appendChild(name);
+        if (character.pronouns) {
+          const sub = document.createElement("div");
+          sub.className = "tileSub";
+          sub.textContent = character.pronouns;
+          text.appendChild(sub);
+        }
+
+        link.appendChild(img);
+        link.appendChild(text);
+        tile.appendChild(link);
+
+        const byLink = document.createElement("a");
+        byLink.className = "creator";
+        byLink.href = "?user=" + encodeURIComponent(character.owner_id);
+
+        const isMine = currentUser && character.owner_id === currentUser.id;
+        const creatorName = isMine ? "You" : (creator && creator.display_name) || "Creator";
+
+        const dot = document.createElement("span");
+        dot.className = "dot";
+        dot.textContent = creatorName.trim().charAt(0).toUpperCase() || "?";
+        byLink.appendChild(dot);
+
+        if (creator && creator.avatar_url) {
+          const avatar = document.createElement("img");
+          avatar.alt = "";
+          avatar.onload = function () {
+            dot.replaceWith(avatar);
+          };
+          avatar.src = creator.avatar_url;
+        }
+
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "name";
+        nameSpan.textContent = creatorName;
+        byLink.appendChild(nameSpan);
+        tile.appendChild(byLink);
+
+        return tile;
+      }
+
+      async function loadDiscover(reset) {
+        const grid = document.getElementById("discoverGrid");
+        const status = document.getElementById("discoverStatus");
+        const moreBtn = document.getElementById("discoverMore");
+
+        if (reset) {
+          discoverOffset = 0;
+          discoverToken += 1;
+          grid.textContent = "";
+        }
+        const token = discoverToken;
+        status.textContent = "Loading...";
+        moreBtn.style.display = "none";
+
+        let query = db
+          .from("characters")
+          .select("id, name, pronouns, image_url, template, owner_id")
+          .eq("show_on_profile", true);
+
+        const style = document.getElementById("discoverStyle").value;
+        if (TEMPLATES.includes(style)) {
+          query = query.eq("template", style);
+        }
+        const term = document.getElementById("discoverSearch").value.replace(/[%_,()*\\]/g, " ").trim();
+        if (term !== "") {
+          query = query.ilike("name", "%" + term + "%");
+        }
+
+        const result = await query
+          .order("created_at", { ascending: false })
+          .range(discoverOffset, discoverOffset + DISCOVER_PAGE - 1);
+        if (token !== discoverToken) {
+          return;
+        }
+        if (result.error) {
+          status.textContent = "Could not load characters right now. Please try again in a moment.";
+          return;
+        }
+
+        const rows = result.data || [];
+        const ownerIds = Array.from(new Set(rows.map(function (r) { return r.owner_id; }).filter(Boolean)));
+        const creators = {};
+        if (ownerIds.length > 0) {
+          const people = await db.from("profiles").select("id, display_name, avatar_url").in("id", ownerIds);
+          if (token !== discoverToken) {
+            return;
+          }
+          if (!people.error && people.data) {
+            people.data.forEach(function (person) {
+              creators[person.id] = person;
+            });
+          }
+        }
+
+        rows.forEach(function (row) {
+          grid.appendChild(buildDiscoverTile(row, creators[row.owner_id]));
+        });
+        discoverOffset += rows.length;
+
+        if (grid.children.length === 0) {
+          status.textContent = term !== "" || style !== ""
+            ? "Nothing matches that search."
+            : "No shared characters yet. Be the first: make one on the Create tab and tick \"Show this character on my public profile page\".";
+        } else {
+          status.textContent = "";
+        }
+        moreBtn.style.display = rows.length === DISCOVER_PAGE ? "" : "none";
       }
 
       // ---------- Profile page ----------
