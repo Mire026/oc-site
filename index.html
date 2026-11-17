@@ -539,6 +539,24 @@
         border-radius: 8px;
       }
 
+      /* ----- Adult section ----- */
+      .preWrap {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .discoverControls .checkRow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+      }
+      .discoverControls .checkRow input {
+        width: 20px;
+        height: 20px;
+        margin: 0;
+        padding: 0;
+      }
+
       /* ----- Layout ----- */
       .layout {
         display: grid;
@@ -1025,6 +1043,10 @@
         </select>
         <select id="discoverGender" onchange="loadDiscover(true)"></select>
         <select id="discoverOrientation" onchange="loadDiscover(true)"></select>
+        <label class="checkRow">
+          <input type="checkbox" id="discoverAdult" onchange="toggleDiscoverAdult()">
+          <span>Include 18+ characters</span>
+        </label>
       </div>
       <div class="tileGrid" id="discoverGrid"></div>
       <p class="hint" id="discoverStatus"></p>
@@ -1089,6 +1111,22 @@
             <div id="cardExtra"></div>
           </div>
 
+          <div class="panel" id="adultBox" style="display: none;">
+            <h3 style="margin-top: 0;">Kinks and limits <span class="tag">18+</span></h3>
+            <div id="adultGate">
+              <p class="hint">This section is for adults only. Please only continue if you are 18 or older.</p>
+              <div class="actions">
+                <button onclick="confirmAdult()">I am 18 or older, show it</button>
+              </div>
+            </div>
+            <div id="adultContent" style="display: none;">
+              <h4>Kinks</h4>
+              <p class="preWrap" id="adultKinks"></p>
+              <h4>Limits</h4>
+              <p class="preWrap" id="adultLimits"></p>
+            </div>
+          </div>
+
           <div class="panel" id="viewerBox" style="display: none;">
             <div class="actions">
               <button onclick="downloadCard()">Download card as image</button>
@@ -1140,6 +1178,17 @@
               <button class="secondary" onclick="addExtraRow('Species', '')">+ Species</button>
               <button class="secondary" onclick="addExtraRow('Abilities', '')">+ Abilities</button>
               <button class="secondary" onclick="addExtraRow('Relationships', '')">+ Relationships</button>
+            </div>
+
+            <h4>Kinks and limits <span class="tag">18+</span></h4>
+            <label class="checkRow">
+              <input type="checkbox" id="adultEnabledInput" onchange="toggleAdultFields()">
+              <span>Add a kinks and limits section (adult characters only)</span>
+            </label>
+            <div id="adultFields" style="display: none;">
+              <p class="hint">Only for characters who are 18 or older (enter an age of 18+ above). This never appears on the card or the downloaded image. People must confirm they are 18+ before they can read it, and characters with this section are hidden from Discover unless someone chooses to include 18+ characters.</p>
+              <textarea id="kinksInput" rows="3" maxlength="1000" placeholder="Kinks"></textarea>
+              <textarea id="limitsInput" rows="3" maxlength="1000" placeholder="Limits (things this character will not do)"></textarea>
             </div>
 
             <h4>Main picture</h4>
@@ -1576,6 +1625,9 @@
           extra: getExtraFields(),
           newPicture: pendingImageBlob ? true : false,
           onProfile: document.getElementById("showOnProfileInput").checked,
+          adult: document.getElementById("adultEnabledInput").checked,
+          kinks: document.getElementById("kinksInput").value,
+          limits: document.getElementById("limitsInput").value,
           gallery: gallery.map(function (item) {
             return item.url || item.key;
           })
@@ -1631,6 +1683,18 @@
           select.appendChild(option);
         }
         select.value = wanted;
+      }
+
+      function toggleAdultFields() {
+        const on = document.getElementById("adultEnabledInput").checked;
+        document.getElementById("adultFields").style.display = on ? "" : "none";
+      }
+
+      function addAdultTag(parent) {
+        const tag = document.createElement("span");
+        tag.className = "tag";
+        tag.textContent = "18+";
+        parent.appendChild(tag);
       }
 
       function setTemplate(name) {
@@ -1851,6 +1915,10 @@
         document.getElementById("templateInput").value =
           TEMPLATES.includes(data.template) ? data.template : "modern";
         document.getElementById("showOnProfileInput").checked = data.show_on_profile === true;
+        document.getElementById("adultEnabledInput").checked = data.adult_enabled === true;
+        document.getElementById("kinksInput").value = data.kinks_text || "";
+        document.getElementById("limitsInput").value = data.limits_text || "";
+        toggleAdultFields();
         setExtraFields(data.extra);
         setGallery(data.gallery);
         renderCard();
@@ -2097,7 +2165,10 @@
             orientation: document.getElementById("orientationInput").value.trim(),
             backstory: document.getElementById("storyInput").value.trim(),
             template: getTemplate(),
-            extra: getExtraFields()
+            extra: getExtraFields(),
+            adult_enabled: document.getElementById("adultEnabledInput").checked,
+            kinks_text: document.getElementById("kinksInput").value.trim(),
+            limits_text: document.getElementById("limitsInput").value.trim()
           },
           images: { main: main, gallery: pictures }
         };
@@ -2160,6 +2231,9 @@
           gender: text(c.gender, 50),
           orientation: text(c.orientation, 50),
           backstory: text(c.backstory, 5000),
+          adult_enabled: c.adult_enabled === true,
+          kinks_text: text(c.kinks_text, 1000),
+          limits_text: text(c.limits_text, 1000),
           template: TEMPLATES.includes(c.template) ? c.template : "modern",
           extra: [],
           gallery: []
@@ -2254,6 +2328,10 @@
         document.getElementById("templateInput").value = "modern";
         document.getElementById("extraFields").textContent = "";
         document.getElementById("showOnProfileInput").checked = false;
+        document.getElementById("adultEnabledInput").checked = false;
+        document.getElementById("kinksInput").value = "";
+        document.getElementById("limitsInput").value = "";
+        toggleAdultFields();
         clearGalleryPreviews();
         gallery = [];
         savedGalleryUrls = [];
@@ -2281,6 +2359,14 @@
           status.textContent = "Please give your character a first name.";
           return;
         }
+        if (document.getElementById("adultEnabledInput").checked) {
+          const ageMatch = document.getElementById("ageInput").value.match(/\d+/);
+          if (!ageMatch || parseInt(ageMatch[0], 10) < 18) {
+            status.textContent =
+              "The kinks and limits section is only for adult characters. Please enter an age of 18 or older, or turn the section off.";
+            return;
+          }
+        }
 
         status.textContent = "Saving...";
 
@@ -2306,7 +2392,10 @@
           backstory: document.getElementById("storyInput").value.trim(),
           template: getTemplate(),
           extra: getExtraFields(),
-          show_on_profile: document.getElementById("showOnProfileInput").checked
+          show_on_profile: document.getElementById("showOnProfileInput").checked,
+          adult_enabled: document.getElementById("adultEnabledInput").checked,
+          kinks_text: document.getElementById("kinksInput").value.trim(),
+          limits_text: document.getElementById("limitsInput").value.trim()
         };
 
         let newImagePath = null;
@@ -2421,7 +2510,7 @@
         const list = document.getElementById("myList");
         const { data, error } = await db
           .from("characters")
-          .select("id, name, image_url, show_on_profile")
+          .select("id, name, image_url, show_on_profile, adult_enabled")
           .eq("owner_id", currentUser.id)
           .order("created_at", { ascending: false });
 
@@ -2458,6 +2547,9 @@
             tag.className = "tag";
             tag.textContent = "On profile";
             nameSpan.appendChild(tag);
+          }
+          if (character.adult_enabled) {
+            addAdultTag(nameSpan);
           }
 
           const buttons = document.createElement("div");
@@ -2597,12 +2689,68 @@
         showImage(data.image_url);
         fillForm(data);
         viewerOwnerId = data.owner_id || null;
+        showAdultSection(data);
 
         if (data.show_on_profile === true && data.owner_id) {
           const more = document.getElementById("moreLink");
           more.querySelector("a").href = "?user=" + encodeURIComponent(data.owner_id);
           more.style.display = "";
         }
+      }
+
+      // ---------- 18+ section ----------
+
+      function isAgeConfirmed() {
+        try {
+          return sessionStorage.getItem("ageConfirmed") === "yes";
+        } catch (err) {
+          return false;
+        }
+      }
+
+      function setAgeConfirmed() {
+        try {
+          sessionStorage.setItem("ageConfirmed", "yes");
+        } catch (err) {
+          // ignore
+        }
+      }
+
+      function revealAdultIfConfirmed() {
+        const ok = isAgeConfirmed();
+        document.getElementById("adultGate").style.display = ok ? "none" : "";
+        document.getElementById("adultContent").style.display = ok ? "" : "none";
+      }
+
+      function showAdultSection(data) {
+        const box = document.getElementById("adultBox");
+        const kinks = (data.kinks_text || "").trim();
+        const limits = (data.limits_text || "").trim();
+        if (data.adult_enabled !== true || (kinks === "" && limits === "")) {
+          box.style.display = "none";
+          return;
+        }
+        document.getElementById("adultKinks").textContent = kinks || "Not specified";
+        document.getElementById("adultLimits").textContent = limits || "Not specified";
+        box.style.display = "";
+        revealAdultIfConfirmed();
+      }
+
+      function confirmAdult() {
+        setAgeConfirmed();
+        revealAdultIfConfirmed();
+      }
+
+      function toggleDiscoverAdult() {
+        const box = document.getElementById("discoverAdult");
+        if (box.checked && !isAgeConfirmed()) {
+          if (!confirm("Characters marked 18+ have an adults-only section. Are you 18 or older?")) {
+            box.checked = false;
+            return;
+          }
+          setAgeConfirmed();
+        }
+        loadDiscover(true);
       }
 
       // ---------- Reports ----------
@@ -2681,6 +2829,7 @@
         document.getElementById("discoverStyle").value = "";
         document.getElementById("discoverGender").value = "";
         document.getElementById("discoverOrientation").value = "";
+        document.getElementById("discoverAdult").checked = false;
         loadDiscover(true);
       }
 
@@ -2712,6 +2861,9 @@
         const name = document.createElement("div");
         name.className = "tileName";
         name.textContent = character.name;
+        if (character.adult_enabled) {
+          addAdultTag(name);
+        }
         text.appendChild(name);
         if (character.pronouns) {
           const sub = document.createElement("div");
@@ -2769,14 +2921,15 @@
           document.getElementById("discoverSearch").value.trim() !== "" ||
           document.getElementById("discoverStyle").value !== "" ||
           document.getElementById("discoverGender").value !== "" ||
-          document.getElementById("discoverOrientation").value !== "";
+          document.getElementById("discoverOrientation").value !== "" ||
+          document.getElementById("discoverAdult").checked;
         document.getElementById("discoverClear").style.display = anyFilter ? "" : "none";
         status.textContent = "Loading...";
         moreBtn.style.display = "none";
 
         let query = db
           .from("characters")
-          .select("id, name, pronouns, image_url, template, owner_id")
+          .select("id, name, pronouns, image_url, template, owner_id, adult_enabled")
           .eq("show_on_profile", true);
 
         const style = document.getElementById("discoverStyle").value;
@@ -2786,6 +2939,9 @@
         const genderFilter = document.getElementById("discoverGender").value;
         if (genderFilter !== "") {
           query = query.eq("gender", genderFilter);
+        }
+        if (!document.getElementById("discoverAdult").checked) {
+          query = query.eq("adult_enabled", false);
         }
         const orientationFilter = document.getElementById("discoverOrientation").value;
         if (orientationFilter !== "") {
@@ -2852,7 +3008,7 @@
           db.from("profiles").select("*").eq("id", userId).single(),
           db
             .from("characters")
-            .select("id, name, pronouns, image_url, template")
+            .select("id, name, pronouns, image_url, template, adult_enabled")
             .eq("owner_id", userId)
             .eq("show_on_profile", true)
             .order("created_at", { ascending: false })
@@ -2915,6 +3071,9 @@
           const name = document.createElement("div");
           name.className = "tileName";
           name.textContent = character.name;
+          if (character.adult_enabled) {
+            addAdultTag(name);
+          }
           text.appendChild(name);
           if (character.pronouns) {
             const sub = document.createElement("div");
